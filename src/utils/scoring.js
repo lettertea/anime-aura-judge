@@ -6,8 +6,8 @@ const GENRE_LABELS = {
   'Slice of Life': 'top-tier comfy vibes',
   Psychological: 'certified brainrot',
   Romance: 'heart-on-sleeve energy',
-  Ecchi: 'guilty pleasure',
-  Harem: 'guilty pleasure',
+  Ecchi: 'guilty pleasure hazard',
+  Harem: 'guilty pleasure hazard',
   Action: 'adrenaline junkie certified',
   Comedy: 'certified clown connoisseur',
   Fantasy: 'isekai-brained dreamer',
@@ -26,7 +26,7 @@ const GENRE_LABELS = {
   Boys: 'fujoshi enrolled',
   Girls: 'moe-ified beyond repair',
   Parody: 'irony-poisoned memelord',
-  Samurai: 'honor-bound weeb',
+  Samurai: 'honor-bound warrior ethos',
   Space: 'astral escapism enjoyer',
   Military: 'tactics-brained strategist',
   School: 'never left the classroom',
@@ -44,48 +44,67 @@ export function genreLabel(anime) {
 }
 
 export function computeAuraScore(selectedAnime) {
-  // Canonical order: same 9 titles always yield identical output regardless
-  // of the order they were selected in.
+  // Canonical order for seed generation:
+  // Same 9 titles always yield identical seed regardless of selection order.
   const canonical = [...selectedAnime].sort((a, b) => a.mal_id - b.mal_id)
   const seed = canonical.reduce((acc, a) => acc + a.mal_id * 31, 0)
 
-  const baseScore = 10000 + (seed % 25000)
+  // 1. Transparent Base Score Calculation
+  const baseline = 10000
+  const uniqueGenres = new Set(
+    selectedAnime.flatMap((a) => (a.genres || []).map((g) => g.name)),
+  ).size
+  const diversityBonus = uniqueGenres * 500
 
-  // --- Three modifiers ---
-  let idx = [seed, seed >> 3, seed >> 6].map((x) => x % 9)
-  // resolve index collisions: offset each colliding index by +1 (mod 9) until distinct
-  const usedIdx = new Set()
-  idx = idx.map((i) => {
-    let j = i
-    while (usedIdx.has(j)) {
-      j = (j + 1) % 9
-    }
-    usedIdx.add(j)
-    return j
-  })
+  const scoredAnime = selectedAnime.filter((a) => typeof a.score === 'number' && a.score > 0)
+  const avgScore =
+    scoredAnime.length > 0
+      ? scoredAnime.reduce((acc, a) => acc + a.score, 0) / scoredAnime.length
+      : 7.5
+  const harmonyBonus = Math.max(0, Math.round((avgScore - 5.0) * 400))
 
-  let vals = idx.map((i) => ((seed >> (i * 4)) % 5000) + 3000)
-  // resolve value collisions: add (i + 1) * 777 to the later colliding value
-  const seenVals = new Set()
-  vals = vals.map((v, i) => {
-    let out = v
-    while (seenVals.has(out)) {
-      out = out + (i + 1) * 777
-    }
-    seenVals.add(out)
-    return out
-  })
+  const baseScore = baseline + diversityBonus + harmonyBonus
+  const baseDetails = {
+    baseline,
+    diversityBonus,
+    uniqueGenres,
+    harmonyBonus,
+    avgScore: Number(avgScore.toFixed(2)),
+  }
 
-  const modifiers = idx.map((i, k) => {
-    const anime = canonical[i]
+  // 2. All 9 Anime Modifiers in grid order
+  const modifiers = selectedAnime.map((anime, idx) => {
     const label = genreLabel(anime)
-    let sign = ((seed >> (k * 5)) % 2 === 0) ? '+' : '-'
-    if (label === 'guilty pleasure') sign = '-'
+    const g = primaryGenre(anime)
+    const scoreVal = typeof anime.score === 'number' && anime.score > 0 ? anime.score : 7.5
+
+    // Seed per anime
+    const animeSeed = Math.abs((anime.mal_id * 37 + (seed >> (idx * 2))) % 10000)
+
+    // Base points scaled from rating plus deterministic variance
+    const scorePoints = Math.round((scoreVal / 10) * 2200)
+    const variance = (animeSeed % 950) + 450
+    const pts = Math.min(4500, Math.max(1200, scorePoints + variance))
+
+    // Sign logic based on genre dynamics and deterministic seed
+    let sign = '+'
+    if (label.includes('guilty pleasure') || g === 'Ecchi' || g === 'Harem') {
+      sign = '-'
+    } else if (g === 'Drama' || g === 'Horror' || g === 'Supernatural') {
+      sign = animeSeed % 3 === 0 ? '-' : '+'
+    } else if (g === 'Parody' || g === 'Comedy') {
+      sign = animeSeed % 4 === 0 ? '-' : '+'
+    } else if (scoreVal < 6.5) {
+      sign = '-'
+    }
+
     return {
+      mal_id: anime.mal_id,
       animeTitle: anime.title,
-      pts: vals[k],
+      pts,
       sign,
       label,
+      genre: g,
     }
   })
 
@@ -98,6 +117,7 @@ export function computeAuraScore(selectedAnime) {
   return {
     seed,
     baseScore,
+    baseDetails,
     finalScore,
     modifiers,
   }
@@ -257,13 +277,47 @@ const FALLBACK_ARCHETYPES = [
   'Manifesting A Season 2',
 ]
 
+export function generateHolisticExplanation(selectedAnime, sheet, seed) {
+  const titles = (selectedAnime || []).map((a) => a.title).filter(Boolean)
+  const genres = [...new Set((selectedAnime || []).flatMap((a) => (a.genres || []).map((g) => g.name)))]
+  const topStat = sheet?.topStat || 'Chaos'
+  const stats = sheet?.stats || { Chaos: 70, Comf: 50, Brainrot: 60, Suffering: 80, Rizz: 40 }
+  const className = sheet?.className || 'Chaotic Scribe of Dub Disrespect'
+
+  const titleA = titles[0] || 'your anchor title'
+  const titleB = titles[Math.floor(titles.length / 2)] || 'your mid-grid pick'
+  const titleC = titles[titles.length - 1] || 'your capstone anime'
+  const genreList = genres.slice(0, 3).join(', ') || 'eclectic genres'
+
+  const p1 =
+    `Your 3x3 grid reveals a deeply deliberate yet unhinged anime palate spanning ${genreList}. ` +
+    `Anchored by heavy hitters like "${titleA}" and contrasted with "${titleB}", your watchlist ` +
+    `refuses to stay in one comfortable lane. You balance intense thematic ambition with unapologetic indulgence, ` +
+    `creating a curated tension that defines your viewing identity.`
+
+  const p2 =
+    `From a character build perspective, your ${topStat} stat (${stats[topStat] || 75}/100) heavily dictates ` +
+    `your aura, firmly establishing you as a true ${className}. ` +
+    `Whether you are subjecting yourself to emotional damage or chasing high-adrenaline dopamine rushes in "${titleC}", ` +
+    `you consistently choose series with strong authorial voice over safe, disposable seasonal trends.`
+
+  const p3 =
+    `Ultimately, this 9-grid represents an aura forged through conviction. ` +
+    `Your taste is stubborn, highly idiosyncratic, and completely unapologetic—a masterclass in aesthetic commitment ` +
+    `that speaks volumes before you even say a word.`
+
+  return `${p1}\n\n${p2}\n\n${p3}`
+}
+
 export function localFallbackVerdict(seed, selectedAnime) {
   const sheet = computeStats(selectedAnime || [], seed)
   const roasts = (selectedAnime || []).map((a, i) => offlineRoast(a, seed, i))
+  const explanation = generateHolisticExplanation(selectedAnime, sheet, seed)
   return {
     archetype: sheet.className,
-    subtitle: 'The grid speaks for itself, and it is not apologizing.',
     callout: 'Touch grass or start a cult, honestly.',
+    explanation,
+    subtitle: explanation.split('\n\n')[0],
     characterBio: `A level ${((seed % 40) + 10)} ${sheet.className}. Specializes in ${sheet.topStat.toLowerCase()} builds and refuses to respec.`,
     roasts,
     sheet,
