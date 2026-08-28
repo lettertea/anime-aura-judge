@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Loader2, X, Sparkles, AlertCircle, Gauge } from 'lucide-react'
-import { searchAnime } from '../services/animeApi.js'
+import { Search, Loader2, X, Sparkles, AlertCircle, Gauge, Dices } from 'lucide-react'
+import { searchAnime, getRandomAnimeSet } from '../services/animeApi.js'
 
 export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }) {
   const [query, setQuery] = useState('')
+  const [luckyLoading, setLuckyLoading] = useState(false)
+  const [luckyError, setLuckyError] = useState(null)
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState(null)
@@ -393,6 +395,43 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
         <p className="text-sm font-mono text-zinc-500 mb-4">
           {filledCount}/9 slots filled
         </p>
+        {luckyError && (
+          <p className="text-sm text-rose-400 mb-3">{luckyError}</p>
+        )}
+        <button
+          onClick={async () => {
+            if (luckyLoading || isJudging) return
+            setLuckyLoading(true)
+            setLuckyError(null)
+            try {
+              const randomSet = await getRandomAnimeSet(9)
+              randomSet.forEach((anime, i) => onSelectSlot(i, anime))
+            } catch (err) {
+              console.error('Lucky pick failed:', err)
+              setLuckyError("Luck ran out — couldn't fetch a random set. Try again.")
+            } finally {
+              setLuckyLoading(false)
+            }
+          }}
+          disabled={luckyLoading || isJudging}
+          className={`mr-3 px-6 py-3.5 rounded-xl text-base font-semibold border transition-colors duration-200 ${
+            luckyLoading || isJudging
+              ? 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed'
+              : 'bg-zinc-900/50 text-zinc-300 border-zinc-800 hover:border-zinc-700 hover:text-zinc-100 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+          }`}
+        >
+          {luckyLoading ? (
+            <span className="flex items-center gap-2 justify-center">
+              <Loader2 className="animate-spin" size={20} />
+              Rolling the dice...
+            </span>
+          ) : (
+            <span className="flex items-center gap-2 justify-center">
+              <Dices size={20} />
+              I'm Feeling Lucky
+            </span>
+          )}
+        </button>
         <button
           onClick={onJudge}
           disabled={filledCount < 9 || isJudging}

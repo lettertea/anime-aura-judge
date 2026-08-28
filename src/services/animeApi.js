@@ -72,7 +72,13 @@ async function searchAniList(query, signal) {
   const json = await res.json()
   const mediaList = json.data?.Page?.media || []
 
-  const mapped = mediaList.map((m) => {
+  const mapped = mapAniListMedia(mediaList)
+  
+    return rankByRelevanceAndPopularity(mapped)
+  }
+  
+  function mapAniListMedia(mediaList) {
+    return mediaList.map((m) => {
     const title = m.title?.english || m.title?.romaji || m.title?.native || 'Unknown Title'
     const year = m.seasonYear || m.startDate?.year || null
     const genres = (m.genres || []).map((name) => ({ name }))
@@ -103,7 +109,6 @@ async function searchAniList(query, signal) {
     }
   })
 
-  return rankByRelevanceAndPopularity(mapped)
 }
 
 /**
@@ -194,6 +199,72 @@ async function searchJikan(query, signal) {
     popularity: a.members ?? null,
     favourites: a.favorites ?? null,
   }))
+}
+
+/**
+ * Fetch a random set of well-known anime for the "I'm Feeling Lucky" button.
+ * Picks a random page from the top-favourited anime on AniList and returns
+ * `count` distinct, shuffled entries mapped to the NormalizedAnime shape.
+ */
+export async function getRandomAnimeSet(count = 9) {
+  const maxPage = 20 // top ~500 favourites
+  const page = Math.floor(Math.random() * maxPage) + 1
+
+  const res = await fetch(ANILIST_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      query: `
+        query ($page: Int) {
+          Page(page: $page, perPage: 25) {
+            media(type: ANIME, sort: FAVOURITES_DESC, isAdult: false) {
+              id
+              idMal
+              title { romaji english native }
+              genres
+              seasonYear
+              startDate { year }
+              averageScore
+              format
+              status
+              episodes
+              popularity
+              favourites
+              coverImage { extraLarge large medium }
+            }
+          }
+        }
+      `,
+      variables: { page },
+    }),
+  })
+
+  if (!res.ok) throw new Error(`AniList error ${res.status}`)
+  const json = await res.json()
+  const mediaList = json.data?.Page?.media || []
+
+  // Shuffle (Fisher–Yates) and take distinct entries by id.
+  const shuffled = [...mediaList]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  const seen = new Set()
+  const picked = []
+  for (const m of shuffled) {
+    const key = m.idMal || m.id
+    if (seen.has(key)) continue
+    seen.add(key)
+    picked.push(m)
+    if (picked.length >= count) break
+  }
+
+  if (picked.length < count) throw new Error('Not enough random anime returned')
+
+  return mapAniListMedia(picked)
 }
 
 export async function searchAnime(query, signal) {
