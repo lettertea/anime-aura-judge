@@ -4,6 +4,7 @@ import {
   computeStats,
   offlineRoast,
   generateHolisticExplanation,
+  STAT_KEYS,
 } from '../utils/scoring.js'
 
 const MODEL = 'google/gemini-3.7-flash'
@@ -14,9 +15,15 @@ const SYSTEM_PROMPT =
   `Avoid internet slang, forced jokes, and meme phrasing. Favor genuine observations about what the ` +
   `selection says about the person.\n\n` +
   `Instructions:\n` +
-  `1. archetype: The user's RPG class name is pre-computed — do NOT modify it.\n` +
-  `2. callout: One short, memorable line that captures the essence of their taste. Plain and confident, not a joke.\n` +
-  `3. explanation: Write a 2-4 paragraph holistic evaluation. Synthesize all 9 titles: how their contrasting or ` +
+  `1. stats: Rate the user's taste profile across five RPG stats, each an integer 0-100: ` +
+  `Chaos (high-energy, high-stakes picks), Comf (calm, restorative picks), Brainrot (psychological, ` +
+  `cerebral, demanding picks), Suffering (emotionally heavy picks), Rizz (romance and character ` +
+  `chemistry). Judge from the actual genre mix of their 9 titles — at least one stat should be ` +
+  `their clear standout, and no stat should be literally 0 unless truly absent.\n` +
+  `2. className: Invent a short RPG class name (2-5 words) that captures their taste, e.g. ` +
+  `"Doomed Archmage of the Backlog". It should reflect their top stats. Be creative but understated — no memes.\n` +
+  `4. callout: One short, memorable line that captures the essence of their taste. Plain and confident, not a joke.\n` +
+  `5. explanation: Write a 2-4 paragraph holistic evaluation. Synthesize all 9 titles: how their contrasting or ` +
   `complementary genres interact (e.g., heavy drama balanced by comfort shows, psychological picks alongside ` +
   `straightforward action). Connect this to their character sheet stats (Chaos, Comf, Brainrot, Suffering, Rizz) ` +
   `and Class, and offer a genuine psychological read of what their taste reveals about them — specific, honest, ` +
@@ -24,8 +31,8 @@ const SYSTEM_PROMPT =
   `throughline of their taste (what they seem to seek from anime, how their picks complement or clash with each ` +
   `other as a collection), and close with a grounded, forward-looking note about what this says about the viewer ` +
   `they are becoming.\n` +
-  `4. characterBio: 2-3 sentences of RPG-style flavor text about the user as a character of that class, referencing their top stats. Keep it understated.\n` +
-  `5. roasts: An array containing exactly 9 entries (one per anime title in the exact same order): a gentle, ` +
+  `6. characterBio: 2-3 sentences of RPG-style flavor text about the user as a character of that class, referencing their top stats. Keep it understated.\n` +
+  `7. roasts: An array containing exactly 9 entries (one per anime title in the exact same order): a gentle, ` +
   `witty one-line observation about why they picked that show. Affectionate teasing at most — no cruelty, no slang.\n\n` +
   `Respond with ONLY valid JSON matching the schema.`
 
@@ -35,7 +42,19 @@ const VERDICT_SCHEMA = {
   schema: {
     type: 'object',
     properties: {
-      archetype: { type: 'string' },
+      stats: {
+        type: 'object',
+        properties: {
+          Chaos: { type: 'integer' },
+          Comf: { type: 'integer' },
+          Brainrot: { type: 'integer' },
+          Suffering: { type: 'integer' },
+          Rizz: { type: 'integer' },
+        },
+        required: ['Chaos', 'Comf', 'Brainrot', 'Suffering', 'Rizz'],
+        additionalProperties: false,
+      },
+      className: { type: 'string' },
       callout: { type: 'string' },
       explanation: { type: 'string' },
       characterBio: { type: 'string' },
@@ -44,7 +63,7 @@ const VERDICT_SCHEMA = {
         items: { type: 'string' },
       },
     },
-    required: ['archetype', 'callout', 'explanation', 'characterBio', 'roasts'],
+    required: ['stats', 'className', 'callout', 'explanation', 'characterBio', 'roasts'],
     additionalProperties: false,
   },
 }
@@ -122,6 +141,20 @@ export function parseVerdictJSON(text) {
   ) {
     throw new Error('schema mismatch')
   }
+  // AI-generated stats/class are optional extras — validate shape if present,
+  // otherwise drop them so the deterministic engine's values are used.
+  if (parsed.stats && typeof parsed.stats === 'object') {
+    const valid = STAT_KEYS.every((k) => {
+      const v = parsed.stats[k]
+      return typeof v === 'number' && Number.isFinite(v)
+    })
+    if (!valid) delete parsed.stats
+  } else {
+    delete parsed.stats
+  }
+  if (typeof parsed.className !== 'string' || !parsed.className.trim()) {
+    delete parsed.className
+  }
   if (!parsed.explanation && parsed.subtitle) {
     parsed.explanation = parsed.subtitle
   }
@@ -184,8 +217,31 @@ export async function getAuraVerdict(scoreResult, selectedAnime) {
         verdict.subtitle ||
         generateHolisticExplanation(selectedAnime, sheet, seed)
 
+      // AI-assisted character sheet: use the model's stats/class when valid,
+      // falling back to the deterministic engine's values otherwise.
+      let finalSheet = sheet
+      if (verdict.stats || verdict.className) {
+        const stats = verdict.stats
+          ? Object.fromEntries(
+              STAT_KEYS.map((k) => [
+                k,
+                Math.max(1, Math.min(100, Math.round(verdict.stats[k]))),
+              ]),
+            )
+          : sheet.stats
+        const ranked = [...STAT_KEYS].sort(
+          (a, b) => stats[b] - stats[a] || a.localeCompare(b),
+        )
+        finalSheet = {
+          ...sheet,
+          stats,
+          topStat: verdict.stats ? ranked[0] : sheet.topStat,
+          className: verdict.className || sheet.className,
+        }
+      }
+
       return {
-        archetype: sheet.className,
+        archetype: finalSheet.className,
         callout: verdict.callout,
         explanation,
         subtitle: explanation.split('\n\n')[0],
@@ -193,7 +249,7 @@ export async function getAuraVerdict(scoreResult, selectedAnime) {
         roasts: roastsOk
           ? verdict.roasts
           : selectedAnime.map((a, i) => offlineRoast(a, seed, i)),
-        sheet,
+        sheet: finalSheet,
         offline: false,
       }
     } catch (err) {
