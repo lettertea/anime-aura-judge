@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, RotateCcw, Loader2, WifiOff } from 'lucide-react'
+import { Download, RotateCcw, Loader2, WifiOff, AlertCircle } from 'lucide-react'
 
 export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset }) {
   const cardRef = useRef(null)
   const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState(null)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const { baseScore, finalScore, modifiers } = scoreResult
   const { archetype, subtitle, callout, offline } = verdict
@@ -12,6 +14,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   const handleDownload = async () => {
     if (exporting || !cardRef.current) return
     setExporting(true)
+    setExportError(null)
     try {
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
@@ -23,6 +26,9 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
       link.click()
     } catch (err) {
       console.error('Card export failed:', err)
+      setExportError(
+        'Card export failed. Some anime images may be blocked by CORS or network restrictions.',
+      )
     } finally {
       setExporting(false)
     }
@@ -49,7 +55,6 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
               <img
                 src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url}
                 alt={anime.title}
-                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -101,15 +106,28 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
           <p className="text-aura-pink font-bold mt-4">“{callout}”</p>
         </div>
 
+        {offline && (
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
+            <WifiOff size={14} />
+            <span>offline mode — verdict generated locally</span>
+          </div>
+        )}
+
         <div className="text-center mt-6 text-[10px] text-slate-600 tracking-widest uppercase">
-          Deterministic scoring · Powered by Jikan + OpenRouter
+          Deterministic scoring · {offline ? 'Powered by Jikan (Local Fallback)' : 'Powered by Jikan + OpenRouter'}
         </div>
       </div>
 
-      {offline && (
-        <div className="w-[900px] mx-auto mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
-          <WifiOff size={14} />
-          offline mode — verdict generated locally
+      {exportError && (
+        <div className="w-[900px] mx-auto mt-4 p-4 rounded-xl bg-red-950/40 border border-red-500/40 flex items-center gap-3 text-red-300 text-sm">
+          <AlertCircle size={18} className="shrink-0 text-red-400" />
+          <p className="flex-1">{exportError}</p>
+          <button
+            onClick={handleDownload}
+            className="text-xs font-bold underline hover:text-white cursor-pointer"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -130,14 +148,34 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
           )}
           {exporting ? 'Exporting...' : 'Download Card'}
         </button>
-        <button
-          onClick={onReset}
-          disabled={exporting}
-          className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold border border-slate-700 text-slate-300 hover:border-aura-pink/60 hover:text-aura-pink transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <RotateCcw size={18} />
-          Reset
-        </button>
+        {confirmReset ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onReset}
+              disabled={exporting}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-aura-pink text-white shadow-glow-pink hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+            >
+              <RotateCcw size={18} />
+              Confirm Reset?
+            </button>
+            <button
+              onClick={() => setConfirmReset(false)}
+              disabled={exporting}
+              className="px-4 py-3 rounded-xl font-semibold border border-slate-700 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmReset(true)}
+            disabled={exporting}
+            className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold border border-slate-700 text-slate-300 hover:border-aura-pink/60 hover:text-aura-pink transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <RotateCcw size={18} />
+            Reset
+          </button>
+        )}
       </div>
     </div>
   )

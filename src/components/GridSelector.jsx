@@ -1,77 +1,144 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Loader2, X, Sparkles } from 'lucide-react'
-
-const JIKAN_SEARCH = 'https://api.jikan.moe/v4/anime?q='
+import { Search, Loader2, X, Sparkles, AlertCircle } from 'lucide-react'
+import { searchAnime } from '../services/animeApi.js'
 
 export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }) {
-  const [modalSlot, setModalSlot] = useState(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState(null)
-  const debounceRef = useRef(null)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(0)
+
+  // Find first empty slot or default to 0
+  const firstEmptySlot = slots.findIndex((s) => s === null)
+  const [activeSlot, setActiveSlot] = useState(firstEmptySlot !== -1 ? firstEmptySlot : 0)
+
   const inputRef = useRef(null)
+  const dropdownRef = useRef(null)
+  const searchContainerRef = useRef(null)
 
   const filledCount = slots.filter(Boolean).length
-  const busy = isJudging || searching
 
-  const openModal = (index) => {
-    if (slots[index] || isJudging) return
-    setModalSlot(index)
-    setQuery('')
-    setResults([])
-    setSearchError(null)
-  }
+  // Keep activeSlot updated if current activeSlot gets filled and there are empty slots
+  useEffect(() => {
+    if (slots[activeSlot] !== null) {
+      const nextEmpty = slots.findIndex((s) => s === null)
+      if (nextEmpty !== -1) {
+        setActiveSlot(nextEmpty)
+      }
+    }
+  }, [slots, activeSlot])
 
-  const closeModal = () => {
-    setModalSlot(null)
-    setQuery('')
-    setResults([])
-    setSearchError(null)
-  }
+  // Handle clicking outside dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
-  const doSearch = useCallback(async (q) => {
+  const doSearch = useCallback(async (q, signal) => {
     setSearching(true)
     setSearchError(null)
     try {
-      const res = await fetch(
-        `${JIKAN_SEARCH}${encodeURIComponent(q)}&limit=6`,
-      )
-      if (!res.ok) throw new Error(`Jikan error ${res.status}`)
-      const data = await res.json()
-      setResults(data.data || [])
+      const data = await searchAnime(q, signal)
+      setResults(data || [])
+      setSelectedIndex(0)
+      setIsDropdownOpen(true)
     } catch (err) {
-      setSearchError('Search failed. Try again.')
+      if (err.name === 'AbortError') return
+      setSearchError(err.message || 'Search failed. Try again.')
       setResults([])
+      setIsDropdownOpen(true)
     } finally {
-      setSearching(false)
+      if (!signal.aborted) {
+        setSearching(false)
+      }
     }
   }, [])
 
   useEffect(() => {
-    if (!modalSlot) return undefined
     if (!query.trim()) {
       setResults([])
       setSearching(false)
+      setSearchError(null)
+      setIsDropdownOpen(false)
       return undefined
     }
-    setSearching(true)
-    const t = setTimeout(() => doSearch(query.trim()), 400)
-    return () => clearTimeout(t)
-  }, [query, modalSlot, doSearch])
 
-  useEffect(() => {
-    if (modalSlot && inputRef.current) inputRef.current.focus()
-  }, [modalSlot])
+    setSearching(true)
+    const controller = new AbortController()
+    const t = setTimeout(() => doSearch(query.trim(), controller.signal), 300)
+    return () => {
+      clearTimeout(t)
+      controller.abort()
+    }
+  }, [query, doSearch])
 
   const pick = (anime) => {
-    onSelectSlot(modalSlot, anime)
-    closeModal()
+    if (!anime) return
+    const targetSlot = activeSlot !== null ? activeSlot : (slots.findIndex((s) => s === null) !== -1 ? slots.findIndex((s) => s === null) : 0)
+    onSelectSlot(targetSlot, anime)
+    setQuery('')
+    setResults([])
+    setIsDropdownOpen(false)
+
+    // Advance to next empty slot
+    const nextEmpty = slots.findIndex((s, idx) => idx !== targetSlot && s === null)
+    if (nextEmpty !== -1) {
+      setActiveSlot(nextEmpty)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (!isDropdownOpen || results.length === 0) {
+      if (e.key === 'Escape') {
+        setIsDropdownOpen(false)
+      }
+      return
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev + 1) % results.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev - 1 + results.length) % results.length)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      const selected = results[selectedIndex]
+      if (selected) {
+        const alreadyPicked = slots.some((s, i) => s && s.mal_id === selected.mal_id && i !== activeSlot)
+        if (!alreadyPicked) {
+          pick(selected)
+        }
+      }
+    } else if (e.key === 'Escape') {
+      setIsDropdownOpen(false)
+    }
+  }
+
+  const handleSlotClick = (index) => {
+    if (isJudging) return
+    setActiveSlot(index)
+    inputRef.current?.focus()
+  }
+
+  const handleClearSlot = (e, index) => {
+    e.stopPropagation()
+    if (isJudging) return
+    onSelectSlot(index, null)
+    setActiveSlot(index)
+    inputRef.current?.focus()
   }
 
   return (
     <div className="w-[1280px] mx-auto py-10">
-      <header className="text-center mb-10">
+      <header className="text-center mb-8">
         <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-aura-purple via-aura-neon to-aura-pink bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(168,85,247,0.5)]">
           ANIME AURA JUDGE
         </h1>
@@ -80,40 +147,224 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
         </p>
       </header>
 
-      <div className="grid grid-cols-3 gap-5 w-[820px] mx-auto">
-        {slots.map((anime, i) => (
-          <button
-            key={i}
-            onClick={() => openModal(i)}
-            disabled={busy}
-            className={`group relative w-[260px] h-[380px] rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-              anime
-                ? 'border-aura-purple/60 shadow-glow'
-                : 'border-slate-700/60 bg-abyss hover:border-aura-pink/70 hover:shadow-glow-pink'
-            } ${busy ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            {anime ? (
-              <>
-                <img
-                  src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url}
-                  alt={anime.title}
-                  crossOrigin="anonymous"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-void via-void/80 to-transparent p-3">
-                  <p className="text-sm font-semibold text-slate-100 line-clamp-2">
-                    {anime.title}
-                  </p>
-                </div>
-              </>
+      {/* Top Search & Autocomplete Bar */}
+      <div ref={searchContainerRef} className="w-[820px] mx-auto mb-8 relative">
+        <div className="flex items-center justify-between mb-2">
+          <label htmlFor="anime-search-input" className="text-sm font-semibold text-slate-300">
+            {slots[activeSlot] ? (
+              <span>
+                Replacing <span className="text-aura-pink font-bold">Slot {activeSlot + 1}</span> ({slots[activeSlot].title})
+              </span>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500 group-hover:text-aura-pink transition-colors">
-                <Sparkles size={36} />
-                <span className="text-sm font-medium">Slot {i + 1}</span>
+              <span>
+                Adding to <span className="text-aura-purple font-bold">Slot {activeSlot + 1}</span>
+              </span>
+            )}
+          </label>
+          <span className="text-sm font-medium text-slate-400 bg-abyss border border-slate-700/60 px-2.5 py-0.5 rounded-full">
+            {filledCount}/9
+          </span>
+        </div>
+
+        <div className="relative">
+          <Search
+            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          />
+          <input
+            id="anime-search-input"
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setIsDropdownOpen(true)
+            }}
+            onFocus={() => {
+              if (query.trim() && results.length > 0) {
+                setIsDropdownOpen(true)
+              }
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={`Search anime for Slot ${activeSlot + 1}...`}
+            disabled={isJudging}
+            autoComplete="off"
+            className="w-full bg-[#130f24] border-2 border-slate-700/80 rounded-2xl py-3.5 pl-11 pr-11 text-slate-100 placeholder-slate-500 focus:border-aura-purple focus:shadow-glow focus:outline-none transition-all text-base"
+          />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {searching && (
+              <Loader2 size={18} className="text-aura-pink animate-spin" />
+            )}
+            {query && !searching && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('')
+                  setResults([])
+                  setIsDropdownOpen(false)
+                  inputRef.current?.focus()
+                }}
+                className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Autocomplete Dropdown */}
+        {isDropdownOpen && (query.trim() || searching || searchError) && (
+          <div
+            ref={dropdownRef}
+            className="absolute left-0 right-0 top-full mt-2 z-50 bg-[#120f21] border border-aura-purple/40 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md max-h-[380px] overflow-y-auto divide-y divide-slate-800/80"
+          >
+            {searching && results.length === 0 && (
+              <div className="p-6 text-center text-slate-400 flex items-center justify-center gap-2">
+                <Loader2 size={18} className="text-aura-pink animate-spin" />
+                <span>Searching anime database...</span>
               </div>
             )}
-          </button>
-        ))}
+
+            {searchError && (
+              <div className="p-4 bg-red-950/40 text-red-300 text-sm flex items-center gap-2">
+                <AlertCircle size={16} className="text-red-400 shrink-0" />
+                <span>{searchError}</span>
+              </div>
+            )}
+
+            {!searching && results.length === 0 && !searchError && query.trim() && (
+              <div className="p-6 text-center text-slate-400 text-sm">
+                No anime found for "{query}". Try another title.
+              </div>
+            )}
+
+            {results.map((anime, index) => {
+              const alreadyPicked = slots.some(
+                (s, i) => s && s.mal_id === anime.mal_id && i !== activeSlot,
+              )
+              const genresText = (anime.genres || []).map((g) => g.name).join(', ')
+              const isHighlighted = selectedIndex === index
+
+              return (
+                <div
+                  key={anime.mal_id || index}
+                  onClick={() => {
+                    if (!alreadyPicked) pick(anime)
+                  }}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={`flex items-center gap-4 p-3.5 transition-colors text-left ${
+                    alreadyPicked
+                      ? 'bg-slate-900/40 opacity-40 cursor-not-allowed'
+                      : isHighlighted
+                        ? 'bg-aura-purple/20 border-l-4 border-aura-pink cursor-pointer'
+                        : 'hover:bg-slate-800/50 cursor-pointer'
+                  }`}
+                >
+                  <img
+                    src={anime.images?.jpg?.small_image_url || anime.images?.jpg?.image_url}
+                    alt={anime.title}
+                    className="w-11 h-16 object-cover rounded-md border border-slate-700 shrink-0 shadow"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-bold text-sm truncate ${isHighlighted ? 'text-aura-neon' : 'text-slate-100'}`}>
+                      {anime.title}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate mt-1">
+                      {anime.year ? `${anime.year}` : ''}
+                      {anime.year && genresText ? ' · ' : ''}
+                      {genresText || 'Anime'}
+                    </p>
+                  </div>
+                  {alreadyPicked ? (
+                    <span className="text-xs font-semibold text-slate-500 bg-slate-800/80 px-2 py-1 rounded">
+                      Already Picked
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-aura-pink opacity-0 group-hover:opacity-100 transition-opacity">
+                      Select
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Grid Section */}
+      <div className="w-[820px] mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-slate-200">Your 3x3</h2>
+          <p className="text-xs text-slate-400">
+            Click any slot to choose or replace
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-5">
+          {slots.map((anime, i) => {
+            const isActive = activeSlot === i
+
+            return (
+              <div key={i} className="relative w-[260px] h-[380px]">
+                <button
+                  type="button"
+                  onClick={() => handleSlotClick(i)}
+                  disabled={isJudging}
+                  className={`group relative w-full h-full rounded-xl overflow-hidden border-2 transition-all duration-200 text-left ${
+                    isActive
+                      ? 'border-aura-purple border-dashed shadow-glow bg-aura-purple/10'
+                      : anime
+                        ? 'border-aura-purple/50 shadow-glow bg-abyss hover:border-aura-pink/80'
+                        : 'border-slate-700/60 bg-abyss hover:border-aura-purple/60 hover:shadow-glow'
+                  } ${isJudging ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {anime ? (
+                    <>
+                      <img
+                        src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url}
+                        alt={anime.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-void/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-sm font-bold text-slate-100 bg-abyss/90 px-3 py-1.5 rounded-lg border border-aura-pink/50 shadow-lg">
+                          Click to Change
+                        </span>
+                      </div>
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-void via-void/80 to-transparent p-3">
+                        <p className="text-sm font-semibold text-slate-100 line-clamp-2">
+                          {anime.title}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <div className="absolute top-2 left-2 bg-aura-purple text-white text-[10px] font-black px-2 py-0.5 rounded shadow uppercase tracking-wider">
+                          Active Slot
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500 group-hover:text-aura-purple transition-colors">
+                      <Sparkles size={36} className={isActive ? 'text-aura-purple animate-pulse' : ''} />
+                      <span className={`text-sm font-medium ${isActive ? 'text-aura-purple font-bold' : ''}`}>
+                        Slot {i + 1} {isActive ? '(Active)' : ''}
+                      </span>
+                    </div>
+                  )}
+                </button>
+
+                {anime && !isJudging && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleClearSlot(e, i)}
+                    title="Remove anime"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-void/80 border border-slate-700 text-slate-400 hover:text-aura-pink hover:border-aura-pink/60 transition-colors z-10 cursor-pointer shadow-md"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       <div className="text-center mt-10">
@@ -139,93 +390,6 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
           )}
         </button>
       </div>
-
-      {modalSlot !== null && (
-        <div className="fixed inset-0 bg-void/90 flex items-center justify-center z-50">
-          <div className="w-[720px] bg-abyss border border-aura-purple/40 rounded-2xl shadow-glow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-100">
-                Search for slot {modalSlot + 1}
-              </h2>
-              <button
-                onClick={closeModal}
-                className="text-slate-400 hover:text-aura-pink transition-colors cursor-pointer"
-              >
-                <X size={22} />
-              </button>
-            </div>
-
-            <div className="relative mb-4">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-              />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Type an anime title..."
-                disabled={isJudging}
-                className="w-full bg-void border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:border-aura-purple focus:outline-none"
-              />
-              {searching && (
-                <Loader2
-                  size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-aura-pink animate-spin"
-                />
-              )}
-            </div>
-
-            {searchError && (
-              <p className="text-aura-pink text-sm mb-3">{searchError}</p>
-            )}
-
-            <div className="space-y-2 max-h-[420px] overflow-y-auto">
-              {results.map((anime) => {
-                const alreadyPicked = slots.some(
-                  (s, i) => s && s.mal_id === anime.mal_id && i !== modalSlot,
-                )
-                return (
-                  <button
-                    key={anime.mal_id}
-                    onClick={() => pick(anime)}
-                    disabled={alreadyPicked}
-                    className={`w-full flex items-center gap-4 p-3 rounded-lg border transition-all duration-150 text-left ${
-                      alreadyPicked
-                        ? 'border-slate-800 bg-slate-900/50 opacity-40 cursor-not-allowed'
-                        : 'border-slate-700 bg-void hover:border-aura-pink/60 hover:bg-slate-900 cursor-pointer'
-                    }`}
-                  >
-                    <img
-                      src={anime.images?.jpg?.small_image_url || anime.images?.jpg?.image_url}
-                      alt={anime.title}
-                      crossOrigin="anonymous"
-                      className="w-10 h-14 object-cover rounded"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-100 truncate">
-                        {anime.title}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate">
-                        {(anime.genres || []).map((g) => g.name).join(', ') || 'Unknown genre'}
-                        {anime.year ? ` · ${anime.year}` : ''}
-                      </p>
-                    </div>
-                    {alreadyPicked && (
-                      <span className="text-xs text-slate-500">already picked</span>
-                    )}
-                  </button>
-                )
-              })}
-              {!searching && query.trim() && results.length === 0 && !searchError && (
-                <p className="text-slate-500 text-sm text-center py-6">
-                  No results found.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
