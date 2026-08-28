@@ -86,6 +86,8 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
     setQuery('')
     setResults([])
     setIsDropdownOpen(false)
+    // Keep focus for rapid multi-picking without scrolling the page to the top
+    inputRef.current?.focus({ preventScroll: true })
 
     // Advance to next empty slot
     const nextEmpty = slots.findIndex((s, idx) => idx !== targetSlot && s === null)
@@ -133,7 +135,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
     if (isJudging) return
     onSelectSlot(index, null)
     setActiveSlot(index)
-    inputRef.current?.focus()
+    inputRef.current?.focus({ preventScroll: true })
   }
 
   return (
@@ -148,7 +150,10 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
       </header>
 
       {/* Top Search & Autocomplete Bar */}
-      <div ref={searchContainerRef} className="w-[820px] mx-auto mb-8 relative">
+      <div
+        ref={searchContainerRef}
+        className="w-[820px] mx-auto mb-8 relative sticky top-0 z-40 bg-abyss/95 backdrop-blur-md rounded-b-2xl py-3 shadow-lg shadow-black/30"
+      >
         <div className="flex items-center justify-between mb-2">
           <label htmlFor="anime-search-input" className="text-sm font-semibold text-slate-300">
             {slots[activeSlot] ? (
