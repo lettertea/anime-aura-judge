@@ -2,13 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  /* Prevents the browser's default white root background from flashing
-     for a frame when blurred/composited layers (e.g. the dropdown) unmount. */
-  @apply bg-void;
-  color-scheme: dark;
-}
-
 body {
   @apply bg-void text-zinc-200 min-w-[1280px] antialiased;
   font-variant-numeric: tabular-nums;
@@ -18,18 +11,3 @@ body {
   @apply bg-indigo-500/30;
 }
 
-/* Suppress native white tap-highlight / focus artifacts on click */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-button:focus:not(:focus-visible),
-input:focus:not(:focus-visible) {
-  outline: none;
-}
-
-button:focus-visible,
-input:focus-visible {
-  outline: 2px solid rgb(99 102 241 / 0.6);
-  outline-offset: 2px;
-}

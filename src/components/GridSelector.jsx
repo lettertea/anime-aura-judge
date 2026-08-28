@@ -165,7 +165,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
       {/* Top Search & Autocomplete Bar */}
       <div
         ref={searchContainerRef}
-        className="w-[820px] mx-auto mb-8 relative sticky top-0 z-40 bg-zinc-950 rounded-b-2xl py-3 shadow-lg shadow-black/30 border-b border-white/5"
+        className="w-[820px] mx-auto mb-8 relative sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md rounded-b-2xl py-3 shadow-lg shadow-black/30 border-b border-white/5"
       >
         <div className="flex items-center justify-between mb-2">
           <label htmlFor="anime-search-input" className="text-sm font-medium text-zinc-300">
@@ -211,7 +211,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
             placeholder={`Search anime for Slot ${activeSlot + 1}...`}
             disabled={isJudging}
             autoComplete="off"
-            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl py-3.5 pl-11 pr-11 text-zinc-100 placeholder-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all text-base"
+            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl py-3.5 pl-11 pr-11 text-zinc-100 placeholder-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors text-base"
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
             {searching && (
@@ -332,7 +332,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
                   type="button"
                   onClick={() => handleSlotClick(i)}
                   disabled={isJudging}
-                  className={`group relative w-full h-full rounded-xl overflow-hidden border transition-all duration-200 text-left ${
+                  className={`group relative w-full h-full rounded-xl overflow-hidden border transition-colors duration-200 text-left ${
                     isActive
                       ? 'border-indigo-500/70 border-dashed bg-indigo-500/5 ring-2 ring-indigo-500/20'
                       : anime
@@ -396,7 +396,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
         <button
           onClick={onJudge}
           disabled={filledCount < 9 || isJudging}
-          className={`px-10 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 ${
+          className={`px-10 py-3.5 rounded-xl text-base font-semibold transition-colors duration-200 ${
             filledCount < 9 || isJudging
               ? 'bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
