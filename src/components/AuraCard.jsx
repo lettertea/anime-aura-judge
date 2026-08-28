@@ -8,7 +8,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState(null)
   const [confirmReset, setConfirmReset] = useState(false)
-  const [showBreakdown, setShowBreakdown] = useState(false)
+  const [showBreakdown, setShowBreakdown] = useState(true)
   const [includeInExport, setIncludeInExport] = useState(false)
 
   const { baseScore, finalScore, modifiers } = scoreResult
@@ -105,7 +105,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
             {modifiers.map((m, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 hover:border-zinc-700 transition-all"
+                className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 hover:border-zinc-700 transition-colors"
               >
                 <div className="min-w-0 pr-3">
                   <p className="font-medium text-sm text-zinc-200 truncate">
@@ -229,7 +229,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
         <button
           onClick={handleDownload}
           disabled={exporting}
-          className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all duration-200 ${
+          className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-colors duration-200 ${
             exporting
               ? 'bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
@@ -247,7 +247,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
             <button
               onClick={onReset}
               disabled={exporting}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-rose-600 text-white hover:bg-rose-500 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-rose-600 text-white hover:bg-rose-500 hover:scale-[1.02] active:scale-[0.98] transition-colors duration-200 cursor-pointer"
             >
               <RotateCcw size={18} />
               Confirm Reset?
@@ -264,7 +264,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
           <button
             onClick={() => setConfirmReset(true)}
             disabled={exporting}
-            className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold border border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold border border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <RotateCcw size={18} />
             Reset
