@@ -146,11 +146,11 @@ const STAT_ICONS = {
 }
 
 const STAT_BLURBS = {
-  Chaos: 'you main high-APM content and it shows',
-  Comf: 'your nervous system is sponsored by iyashikei',
-  Brainrot: 'you watch anime with a spreadsheet open',
-  Suffering: 'you collect emotional damage like trading cards',
-  Rizz: 'somehow every pick has a confession scene',
+  Chaos: 'you gravitate toward high-energy, high-stakes shows',
+  Comf: 'you value calm, restorative viewing',
+  Brainrot: 'you like shows that reward close attention',
+  Suffering: 'you don\'t shy away from emotionally heavy stories',
+  Rizz: 'romance and character chemistry show up often in your picks',
 }
 
 const CLASS_PREFIX = {
@@ -220,35 +220,35 @@ export function computeStats(selectedAnime, seed) {
 // ---------------------------------------------------------------------------
 
 const ROAST_TEMPLATES = {
-  Action: 'picked for the plot. the plot was fighting. respect.',
-  Adventure: 'wanderlust so strong you forgot season 2 exists',
-  Avant: 'nobody knows what happened and you refuse to explain',
-  Comedy: 'your humor is legally distinct from brain damage',
-  Drama: 'you did this to yourself and you would do it again',
-  Ecchi: 'we all saw it. we are not going to talk about it.',
-  Fantasy: 'escapism speedrun, any% no grass',
-  Gourmet: 'watched on an empty stomach. criminal.',
-  Harem: 'the protagonist chose nobody and neither did you',
-  Horror: 'you call this fun. HR would like a word.',
-  Kids: 'healing your inner child or just avoiding adulthood?',
-  Mecha: 'big robot enjoyer. the robot is doing the heavy lifting.',
-  Military: 'you have opinions about logistics now',
-  Music: 'cried at a concert that never happened',
-  Mystery: 'you guessed the twist. you tell everyone. constantly.',
-  Parody: 'irony levels critical. sincerity not found.',
-  Psychological: 'this is not entertainment, this is homework',
-  Romance: 'kicked your feet. denied it in public.',
-  School: 'graduated years ago. still enrolled spiritually.',
-  'Sci-Fi': 'will explain the tech tree unprompted',
-  'Slice of Life': 'nothing happened and it changed you',
-  Space: 'the final frontier was your couch',
-  Sports: 'screamed at fictional teenagers. no regrets.',
-  Supernatural: 'spiritually unwell, aesthetically correct',
-  Thriller: 'resting heart rate: cancelled',
-  Boys: 'the shipping wall sees everything',
-  Girls: 'moe tolerance: maximum',
-  Samurai: 'honor-bound and chronically online',
-  Unknown: 'defied categorization. the judge is concerned.',
+  Action: 'picked for the spectacle, and the spectacle delivered',
+  Adventure: 'a journey worth taking, even if the sequel never came',
+  Avant: 'you picked something deliberately hard to explain',
+  Comedy: 'a reliable source of laughs — no irony required',
+  Drama: 'you chose the emotional weight, and you\'d do it again',
+  Ecchi: 'a guilty pleasure you\'re not fully apologizing for',
+  Fantasy: 'a well-crafted escape from the everyday',
+  Gourmet: 'best watched on a full stomach, in hindsight',
+  Harem: 'you tolerated a lot of tropes for these characters',
+  Horror: 'you genuinely enjoy being unsettled',
+  Kids: 'either healing your inner child or just genuinely charming',
+  Mecha: 'the robots carried it, and you\'re fine with that',
+  Military: 'you appreciate a story that takes its strategy seriously',
+  Music: 'the soundtrack did more emotional work than most dialogue',
+  Mystery: 'you saw the twist coming and enjoyed it anyway',
+  Parody: 'you appreciate a show that doesn\'t take itself seriously',
+  Psychological: 'more of a mental exercise than light entertainment',
+  Romance: 'you\'re a sucker for a well-earned confession scene',
+  School: 'school settings clearly still work on you',
+  'Sci-Fi': 'you enjoy the world-building as much as the plot',
+  'Slice of Life': 'nothing much happened, and it mattered anyway',
+  Space: 'the final frontier, from the comfort of home',
+  Sports: 'you got invested in fictional athletes and don\'t regret it',
+  Supernatural: 'grounded stories were never quite enough',
+  Thriller: 'your pulse was not safe during this one',
+  Boys: 'the relationships were the real draw',
+  Girls: 'charm and character design won you over',
+  Samurai: 'drawn to codes of honor and disciplined storytelling',
+  Unknown: 'hard to categorize, which is part of the appeal',
 }
 
 export function offlineRoast(anime, seed, index) {
@@ -290,21 +290,20 @@ export function generateHolisticExplanation(selectedAnime, sheet, seed) {
   const genreList = genres.slice(0, 3).join(', ') || 'eclectic genres'
 
   const p1 =
-    `Your 3x3 grid reveals a deeply deliberate yet unhinged anime palate spanning ${genreList}. ` +
-    `Anchored by heavy hitters like "${titleA}" and contrasted with "${titleB}", your watchlist ` +
-    `refuses to stay in one comfortable lane. You balance intense thematic ambition with unapologetic indulgence, ` +
-    `creating a curated tension that defines your viewing identity.`
+    `Your grid spans ${genreList}, and the mix says a lot. Anchored by "${titleA}" and ` +
+    `balanced against "${titleB}", your taste doesn't stay in one lane — you pair ` +
+    `thematically ambitious picks with lighter fare, and the contrast is deliberate rather than random.`
 
   const p2 =
-    `From a character build perspective, your ${topStat} stat (${stats[topStat] || 75}/100) heavily dictates ` +
-    `your aura, firmly establishing you as a true ${className}. ` +
-    `Whether you are subjecting yourself to emotional damage or chasing high-adrenaline dopamine rushes in "${titleC}", ` +
-    `you consistently choose series with strong authorial voice over safe, disposable seasonal trends.`
+    `Your strongest stat is ${topStat} (${stats[topStat] || 75}/100), which is what earns you the ` +
+    `${className} class. Whether you're drawn to emotionally demanding stories or high-energy ` +
+    `picks like "${titleC}", you consistently favor series with a distinct authorial voice ` +
+    `over safe, formulaic seasonal fare.`
 
   const p3 =
-    `Ultimately, this 9-grid represents an aura forged through conviction. ` +
-    `Your taste is stubborn, highly idiosyncratic, and completely unapologetic—a masterclass in aesthetic commitment ` +
-    `that speaks volumes before you even say a word.`
+    `Taken together, this grid reflects genuine conviction in your taste. It's specific, ` +
+    `a little idiosyncratic, and consistent — the kind of selection that tells people ` +
+    `who you are as a viewer before you say a word.`
 
   return `${p1}\n\n${p2}\n\n${p3}`
 }
@@ -315,10 +314,10 @@ export function localFallbackVerdict(seed, selectedAnime) {
   const explanation = generateHolisticExplanation(selectedAnime, sheet, seed)
   return {
     archetype: sheet.className,
-    callout: 'Touch grass or start a cult, honestly.',
+    callout: 'A taste with conviction — and the range to back it up.',
     explanation,
     subtitle: explanation.split('\n\n')[0],
-    characterBio: `A level ${((seed % 40) + 10)} ${sheet.className}. Specializes in ${sheet.topStat.toLowerCase()} builds and refuses to respec.`,
+    characterBio: `A level ${((seed % 40) + 10)} ${sheet.className}. Specializes in ${sheet.topStat.toLowerCase()} builds and rarely respecs — commitment is part of the build.`,
     roasts,
     sheet,
   }
