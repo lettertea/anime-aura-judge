@@ -16,11 +16,14 @@ const SYSTEM_PROMPT =
   `Instructions:\n` +
   `1. archetype: The user's RPG class name is pre-computed — do NOT modify it.\n` +
   `2. callout: One short, memorable line that captures the essence of their taste. Plain and confident, not a joke.\n` +
-  `3. explanation: Write a 1-3 paragraph holistic evaluation. Synthesize all 9 titles: how their contrasting or ` +
+  `3. explanation: Write a 2-4 paragraph holistic evaluation. Synthesize all 9 titles: how their contrasting or ` +
   `complementary genres interact (e.g., heavy drama balanced by comfort shows, psychological picks alongside ` +
   `straightforward action). Connect this to their character sheet stats (Chaos, Comf, Brainrot, Suffering, Rizz) ` +
   `and Class, and offer a genuine psychological read of what their taste reveals about them — specific, honest, ` +
-  `and thoughtful rather than exaggerated.\n` +
+  `and thoughtful rather than exaggerated. In a final paragraph, zoom out: reflect on the overall trajectory or ` +
+  `throughline of their taste (what they seem to seek from anime, how their picks complement or clash with each ` +
+  `other as a collection), and close with a grounded, forward-looking note about what this says about the viewer ` +
+  `they are becoming.\n` +
   `4. characterBio: 2-3 sentences of RPG-style flavor text about the user as a character of that class, referencing their top stats. Keep it understated.\n` +
   `5. roasts: An array containing exactly 9 entries (one per anime title in the exact same order): a gentle, ` +
   `witty one-line observation about why they picked that show. Affectionate teasing at most — no cruelty, no slang.\n\n` +
