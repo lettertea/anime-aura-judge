@@ -63,9 +63,18 @@ export default function App() {
   }
 
   return (
-    <div className="min-w-[1280px] min-h-screen bg-void">
+    <div className="min-w-[1280px] min-h-screen bg-void relative">
+      {/* Subtle radial spotlight */}
       <div
-        className={`transition-opacity duration-200 ${fade ? 'opacity-100' : 'opacity-0'}`}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[600px]"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(99, 102, 241, 0.05), transparent 70%), radial-gradient(ellipse 40% 40% at 80% 0%, rgba(16, 185, 129, 0.03), transparent 70%)',
+        }}
+      />
+      <div
+        className={`relative transition-opacity duration-200 ${fade ? 'opacity-100' : 'opacity-0'}`}
       >
         {view === 'selection' ? (
           <GridSelector

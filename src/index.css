@@ -2,10 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  /* Prevents the browser's default white root background from flashing
+     for a frame when blurred/composited layers (e.g. the dropdown) unmount. */
+  @apply bg-void;
+  color-scheme: dark;
+}
+
 body {
-  @apply bg-void text-slate-200 min-w-[1280px];
+  @apply bg-void text-zinc-200 min-w-[1280px] antialiased;
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
-  @apply bg-aura-pink/40;
+  @apply bg-indigo-500/30;
 }

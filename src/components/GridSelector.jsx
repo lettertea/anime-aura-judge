@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Loader2, X, Sparkles, AlertCircle } from 'lucide-react'
+import { Search, Loader2, X, Sparkles, AlertCircle, Gauge } from 'lucide-react'
 import { searchAnime } from '../services/animeApi.js'
 
 export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }) {
@@ -17,6 +17,9 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
   const inputRef = useRef(null)
   const dropdownRef = useRef(null)
   const searchContainerRef = useRef(null)
+  // Guards against the focus-restore in pick() firing onFocus with stale
+  // query/results and briefly re-opening the dropdown (visual flash).
+  const skipNextFocusRef = useRef(false)
 
   const filledCount = slots.filter(Boolean).length
 
@@ -86,7 +89,10 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
     setQuery('')
     setResults([])
     setIsDropdownOpen(false)
-    // Keep focus for rapid multi-picking without scrolling the page to the top
+    // Keep focus for rapid multi-picking without scrolling the page to the top.
+    // Skip the onFocus handler — it still sees stale query/results here and
+    // would briefly re-open the dropdown before the empty-query effect closes it.
+    skipNextFocusRef.current = true
     inputRef.current?.focus({ preventScroll: true })
 
     // Advance to next empty slot
@@ -139,12 +145,19 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
   }
 
   return (
-    <div className="w-[1280px] mx-auto py-10">
-      <header className="text-center mb-8">
-        <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-aura-purple via-aura-neon to-aura-pink bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(168,85,247,0.5)]">
-          ANIME AURA JUDGE
+    <div className="w-[1280px] mx-auto py-12">
+      <header className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-xs font-mono uppercase tracking-widest text-zinc-400 mb-5">
+          <Gauge size={13} className="text-indigo-400" />
+          Official Aura Assessment
+        </div>
+        <h1 className="flex items-center justify-center gap-3 text-2xl font-semibold tracking-tight text-zinc-100">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-accent-glow">
+            <Gauge size={18} />
+          </span>
+          Anime Aura Judge
         </h1>
-        <p className="mt-3 text-slate-400 text-lg">
+        <p className="mt-3 text-zinc-400 text-base">
           Pick 9 anime. Receive judgment. No mercy.
         </p>
       </header>
@@ -152,21 +165,21 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
       {/* Top Search & Autocomplete Bar */}
       <div
         ref={searchContainerRef}
-        className="w-[820px] mx-auto mb-8 relative sticky top-0 z-40 bg-abyss/95 backdrop-blur-md rounded-b-2xl py-3 shadow-lg shadow-black/30"
+        className="w-[820px] mx-auto mb-8 relative sticky top-0 z-40 bg-zinc-950 rounded-b-2xl py-3 shadow-lg shadow-black/30 border-b border-white/5"
       >
         <div className="flex items-center justify-between mb-2">
-          <label htmlFor="anime-search-input" className="text-sm font-semibold text-slate-300">
+          <label htmlFor="anime-search-input" className="text-sm font-medium text-zinc-300">
             {slots[activeSlot] ? (
               <span>
-                Replacing <span className="text-aura-pink font-bold">Slot {activeSlot + 1}</span> ({slots[activeSlot].title})
+                Replacing <span className="text-violet-400 font-semibold">Slot {activeSlot + 1}</span> ({slots[activeSlot].title})
               </span>
             ) : (
               <span>
-                Adding to <span className="text-aura-purple font-bold">Slot {activeSlot + 1}</span>
+                Adding to <span className="text-indigo-400 font-semibold">Slot {activeSlot + 1}</span>
               </span>
             )}
           </label>
-          <span className="text-sm font-medium text-slate-400 bg-abyss border border-slate-700/60 px-2.5 py-0.5 rounded-full">
+          <span className="text-xs font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-full">
             {filledCount}/9
           </span>
         </div>
@@ -174,7 +187,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
         <div className="relative">
           <Search
             size={18}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
           />
           <input
             id="anime-search-input"
@@ -186,6 +199,10 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
               setIsDropdownOpen(true)
             }}
             onFocus={() => {
+              if (skipNextFocusRef.current) {
+                skipNextFocusRef.current = false
+                return
+              }
               if (query.trim() && results.length > 0) {
                 setIsDropdownOpen(true)
               }
@@ -194,11 +211,11 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
             placeholder={`Search anime for Slot ${activeSlot + 1}...`}
             disabled={isJudging}
             autoComplete="off"
-            className="w-full bg-[#130f24] border-2 border-slate-700/80 rounded-2xl py-3.5 pl-11 pr-11 text-slate-100 placeholder-slate-500 focus:border-aura-purple focus:shadow-glow focus:outline-none transition-all text-base"
+            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl py-3.5 pl-11 pr-11 text-zinc-100 placeholder-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all text-base"
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
             {searching && (
-              <Loader2 size={18} className="text-aura-pink animate-spin" />
+              <Loader2 size={18} className="text-indigo-400 animate-spin" />
             )}
             {query && !searching && (
               <button
@@ -209,7 +226,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
                   setIsDropdownOpen(false)
                   inputRef.current?.focus()
                 }}
-                className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -221,24 +238,24 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
         {isDropdownOpen && (query.trim() || searching || searchError) && (
           <div
             ref={dropdownRef}
-            className="absolute left-0 right-0 top-full mt-2 z-50 bg-[#120f21] border border-aura-purple/40 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md max-h-[380px] overflow-y-auto divide-y divide-slate-800/80"
+            className="absolute left-0 right-0 top-full mt-2 z-50 bg-zinc-900/95 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden backdrop-blur-md max-h-[380px] overflow-y-auto divide-y divide-zinc-800/60"
           >
             {searching && results.length === 0 && (
-              <div className="p-6 text-center text-slate-400 flex items-center justify-center gap-2">
-                <Loader2 size={18} className="text-aura-pink animate-spin" />
+              <div className="p-6 text-center text-zinc-400 flex items-center justify-center gap-2">
+                <Loader2 size={18} className="text-indigo-400 animate-spin" />
                 <span>Searching anime database...</span>
               </div>
             )}
 
             {searchError && (
-              <div className="p-4 bg-red-950/40 text-red-300 text-sm flex items-center gap-2">
-                <AlertCircle size={16} className="text-red-400 shrink-0" />
+              <div className="p-4 bg-rose-950/30 text-rose-300 text-sm flex items-center gap-2">
+                <AlertCircle size={16} className="text-rose-400 shrink-0" />
                 <span>{searchError}</span>
               </div>
             )}
 
             {!searching && results.length === 0 && !searchError && query.trim() && (
-              <div className="p-6 text-center text-slate-400 text-sm">
+              <div className="p-6 text-center text-zinc-400 text-sm">
                 No anime found for "{query}". Try another title.
               </div>
             )}
@@ -259,33 +276,33 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`flex items-center gap-4 p-3.5 transition-colors text-left ${
                     alreadyPicked
-                      ? 'bg-slate-900/40 opacity-40 cursor-not-allowed'
+                      ? 'bg-zinc-900/40 opacity-40 cursor-not-allowed'
                       : isHighlighted
-                        ? 'bg-aura-purple/20 border-l-4 border-aura-pink cursor-pointer'
-                        : 'hover:bg-slate-800/50 cursor-pointer'
+                        ? 'bg-indigo-500/10 border-l-2 border-indigo-400 cursor-pointer'
+                        : 'hover:bg-zinc-800/50 cursor-pointer'
                   }`}
                 >
                   <img
                     src={anime.images?.jpg?.small_image_url || anime.images?.jpg?.image_url}
                     alt={anime.title}
-                    className="w-11 h-16 object-cover rounded-md border border-slate-700 shrink-0 shadow"
+                    className="w-11 h-16 object-cover rounded-md border border-zinc-800 shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className={`font-bold text-sm truncate ${isHighlighted ? 'text-aura-neon' : 'text-slate-100'}`}>
+                    <p className={`font-medium text-sm truncate ${isHighlighted ? 'text-indigo-300' : 'text-zinc-100'}`}>
                       {anime.title}
                     </p>
-                    <p className="text-xs text-slate-400 truncate mt-1">
+                    <p className="text-xs text-zinc-500 font-mono truncate mt-1">
                       {anime.year ? `${anime.year}` : ''}
                       {anime.year && genresText ? ' · ' : ''}
                       {genresText || 'Anime'}
                     </p>
                   </div>
                   {alreadyPicked ? (
-                    <span className="text-xs font-semibold text-slate-500 bg-slate-800/80 px-2 py-1 rounded">
+                    <span className="text-xs font-medium text-zinc-500 bg-zinc-800/80 px-2 py-1 rounded">
                       Already Picked
                     </span>
                   ) : (
-                    <span className="text-xs font-medium text-aura-pink opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs font-medium text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
                       Select
                     </span>
                   )}
@@ -299,8 +316,8 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
       {/* Grid Section */}
       <div className="w-[820px] mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-200">Your 3x3</h2>
-          <p className="text-xs text-slate-400">
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">Your 3x3</h2>
+          <p className="text-xs font-mono text-zinc-500">
             Click any slot to choose or replace
           </p>
         </div>
@@ -315,12 +332,12 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
                   type="button"
                   onClick={() => handleSlotClick(i)}
                   disabled={isJudging}
-                  className={`group relative w-full h-full rounded-xl overflow-hidden border-2 transition-all duration-200 text-left ${
+                  className={`group relative w-full h-full rounded-xl overflow-hidden border transition-all duration-200 text-left ${
                     isActive
-                      ? 'border-aura-purple border-dashed shadow-glow bg-aura-purple/10'
+                      ? 'border-indigo-500/70 border-dashed bg-indigo-500/5 ring-2 ring-indigo-500/20'
                       : anime
-                        ? 'border-aura-purple/50 shadow-glow bg-abyss hover:border-aura-pink/80'
-                        : 'border-slate-700/60 bg-abyss hover:border-aura-purple/60 hover:shadow-glow'
+                        ? 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-600'
+                        : 'border-zinc-800/80 bg-zinc-900/30 hover:border-zinc-700'
                   } ${isJudging ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {anime ? (
@@ -330,26 +347,26 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
                         alt={anime.title}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-void/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="text-sm font-bold text-slate-100 bg-abyss/90 px-3 py-1.5 rounded-lg border border-aura-pink/50 shadow-lg">
+                      <div className="absolute inset-0 bg-zinc-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-sm font-medium text-zinc-100 bg-zinc-900/90 px-3 py-1.5 rounded-lg border border-zinc-700">
                           Click to Change
                         </span>
                       </div>
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-void via-void/80 to-transparent p-3">
-                        <p className="text-sm font-semibold text-slate-100 line-clamp-2">
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent p-3">
+                        <p className="text-sm font-medium text-zinc-100 line-clamp-2">
                           {anime.title}
                         </p>
                       </div>
                       {isActive && (
-                        <div className="absolute top-2 left-2 bg-aura-purple text-white text-[10px] font-black px-2 py-0.5 rounded shadow uppercase tracking-wider">
+                        <div className="absolute top-2 left-2 bg-indigo-500 text-white text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase tracking-wider">
                           Active Slot
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500 group-hover:text-aura-purple transition-colors">
-                      <Sparkles size={36} className={isActive ? 'text-aura-purple animate-pulse' : ''} />
-                      <span className={`text-sm font-medium ${isActive ? 'text-aura-purple font-bold' : ''}`}>
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-zinc-600 group-hover:text-indigo-400 transition-colors">
+                      <Sparkles size={32} className={isActive ? 'text-indigo-400 animate-pulse' : ''} />
+                      <span className={`text-sm font-mono ${isActive ? 'text-indigo-400' : ''}`}>
                         Slot {i + 1} {isActive ? '(Active)' : ''}
                       </span>
                     </div>
@@ -361,7 +378,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
                     type="button"
                     onClick={(e) => handleClearSlot(e, i)}
                     title="Remove anime"
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-void/80 border border-slate-700 text-slate-400 hover:text-aura-pink hover:border-aura-pink/60 transition-colors z-10 cursor-pointer shadow-md"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-zinc-950/80 border border-zinc-700 text-zinc-400 hover:text-rose-400 hover:border-rose-500/50 transition-colors z-10 cursor-pointer"
                   >
                     <X size={16} />
                   </button>
@@ -373,16 +390,16 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
       </div>
 
       <div className="text-center mt-10">
-        <p className="text-slate-400 mb-4">
+        <p className="text-sm font-mono text-zinc-500 mb-4">
           {filledCount}/9 slots filled
         </p>
         <button
           onClick={onJudge}
           disabled={filledCount < 9 || isJudging}
-          className={`px-10 py-4 rounded-xl text-lg font-bold transition-all duration-200 ${
+          className={`px-10 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 ${
             filledCount < 9 || isJudging
-              ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
-              : 'bg-gradient-to-r from-aura-purple to-aura-pink text-white shadow-glow hover:scale-105 active:scale-95 cursor-pointer'
+              ? 'bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
           }`}
         >
           {isJudging ? (
