@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-void text-zinc-200 min-w-[1280px] antialiased;
+  @apply bg-void text-zinc-200 antialiased;
   font-variant-numeric: tabular-nums;
 }
 

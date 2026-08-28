@@ -53,11 +53,11 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8">
         {selectedAnime.map((anime) => (
           <div
             key={anime.mal_id}
-            className="relative w-full h-[220px] rounded-lg overflow-hidden border border-zinc-800"
+            className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-zinc-800"
           >
             <img
               src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url}
@@ -177,9 +177,9 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   )
 
   return (
-    <div className="w-[1280px] mx-auto py-12">
+    <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
       {/* Visible card */}
-      <div className="w-[900px] mx-auto bg-zinc-900/60 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-card p-8">
+      <div className="max-w-[900px] mx-auto bg-zinc-900/60 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-card p-4 sm:p-8">
         {cardBody}
       </div>
 
@@ -192,7 +192,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
         />
       )}
 
-      <div className="w-[900px] mx-auto mt-4 flex justify-center">
+      <div className="max-w-[900px] mx-auto mt-4 flex justify-center">
         <button
           onClick={() => setShowBreakdown(!showBreakdown)}
           className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors cursor-pointer"
@@ -203,7 +203,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
       </div>
 
       {exportError && (
-        <div className="w-[900px] mx-auto mt-4 p-4 rounded-xl bg-rose-950/30 border border-rose-500/20 flex items-center gap-3 text-rose-300 text-sm">
+        <div className="max-w-[900px] mx-auto mt-4 p-4 rounded-xl bg-rose-950/30 border border-rose-500/20 flex items-center gap-3 text-rose-300 text-sm">
           <AlertCircle size={18} className="shrink-0 text-rose-400" />
           <p className="flex-1">{exportError}</p>
           <button
@@ -215,11 +215,11 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
         </div>
       )}
 
-      <div className="flex items-center justify-center gap-4 mt-8">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-8">
         <button
           onClick={handleDownload}
           disabled={exporting}
-          className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-colors duration-200 ${
+          className={`flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-xl font-semibold transition-colors duration-200 ${
             exporting
               ? 'bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
@@ -237,7 +237,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
             <button
               onClick={onReset}
               disabled={exporting}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-rose-600 text-white hover:bg-rose-500 hover:scale-[1.02] active:scale-[0.98] transition-colors duration-200 cursor-pointer"
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold bg-rose-600 text-white hover:bg-rose-500 hover:scale-[1.02] active:scale-[0.98] transition-colors duration-200 cursor-pointer"
             >
               <RotateCcw size={18} />
               Confirm Reset?
@@ -254,7 +254,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
           <button
             onClick={() => setConfirmReset(true)}
             disabled={exporting}
-            className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold border border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-xl font-semibold border border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <RotateCcw size={18} />
             Reset

@@ -81,7 +81,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-w-[1280px] min-h-screen bg-void relative">
+    <div className="min-h-screen bg-void relative">
       {/* Subtle radial spotlight */}
       <div
         aria-hidden="true"

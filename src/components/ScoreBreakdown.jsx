@@ -70,11 +70,11 @@ export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) 
   }
 
   return (
-    <div className="w-[900px] mx-auto mt-6 space-y-3">
+    <div className="max-w-[900px] mx-auto mt-6 space-y-3">
       {/* Stat Sheet — open by default, it's the star of the show */}
       {sheet && (
         <Section title="Character Sheet" icon="⚔️" defaultOpen>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               {Object.entries(sheet.stats).map(([stat, value]) => (
                 <StatBar
