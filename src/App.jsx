@@ -24,12 +24,13 @@ export default function App() {
     })
   }
 
-  const transitionTo = (nextView) => {
+  const transitionTo = (nextView, onComplete) => {
     setFade(false)
     setTimeout(() => {
       setView(nextView)
       window.scrollTo({ top: 0, behavior: 'instant' })
       setFade(true)
+      if (onComplete) onComplete()
     }, 200)
   }
 
@@ -50,7 +51,9 @@ export default function App() {
     }
     try {
       const v = await getAuraVerdict(score, slots)
-      setScoreResult(score)
+      // AI mode may return its own AI-evaluated scoreResult; fall back to the
+      // deterministic one if the model didn't provide valid modifiers.
+      setScoreResult(v.scoreResult || score)
       setVerdict(v)
       transitionTo('results')
     } catch (err) {
@@ -68,10 +71,13 @@ export default function App() {
   }
 
   const handleReset = () => {
-    setSlots(EMPTY_SLOTS)
-    setScoreResult(null)
-    setVerdict(null)
-    transitionTo('selection')
+    // Switch views first, then clear state — clearing while AuraCard is still
+    // mounted would crash it (it reads scoreResult.baseScore) and blank the page.
+    transitionTo('selection', () => {
+      setSlots(Array(9).fill(null))
+      setScoreResult(null)
+      setVerdict(null)
+    })
   }
 
   return (

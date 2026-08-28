@@ -170,6 +170,11 @@ export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) 
 
           <div className="pt-2 pb-1 text-xs text-zinc-500 uppercase tracking-wider font-semibold">
             All 9 Anime Contributions
+            {scoreResult.aiScored && (
+              <span className="ml-2 normal-case tracking-normal text-violet-400 font-medium">
+                ✦ AI-evaluated
+              </span>
+            )}
           </div>
           {modifiers.map((m, i) => (
             <div key={i} className="flex justify-between items-center text-xs sm:text-sm">

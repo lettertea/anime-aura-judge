@@ -22,6 +22,12 @@ const SYSTEM_PROMPT =
   `their clear standout, and no stat should be literally 0 unless truly absent.\n` +
   `2. className: Invent a short RPG class name (2-5 words) that captures their taste, e.g. ` +
   `"Doomed Archmage of the Backlog". It should reflect their top stats. Be creative but understated — no memes.\n` +
+  `3. modifiers: An array of exactly 9 entries (one per anime title in the exact same order) evaluating each ` +
+  `pick. Each entry has: sign ("+" or "-"), pts (an integer between 1200 and 4500 — stronger picks earn ` +
+  `more points; critically acclaimed or personally resonant picks score high, guilty pleasures or weak ` +
+  `picks get fewer points or a minus), and reason (a short lowercase phrase explaining the contribution, ` +
+  `e.g. "peak fiction, no notes" or "we know what you are"). Judge honestly based on the title's reputation, ` +
+  `genre, and how it fits the grid. At least 6 entries should be "+".\n` +
   `4. callout: One short, memorable line that captures the essence of their taste. Plain and confident, not a joke.\n` +
   `5. explanation: Write a 2-4 paragraph holistic evaluation. Synthesize all 9 titles: how their contrasting or ` +
   `complementary genres interact (e.g., heavy drama balanced by comfort shows, psychological picks alongside ` +
@@ -55,6 +61,19 @@ const VERDICT_SCHEMA = {
         additionalProperties: false,
       },
       className: { type: 'string' },
+      modifiers: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            sign: { type: 'string', enum: ['+', '-'] },
+            pts: { type: 'integer' },
+            reason: { type: 'string' },
+          },
+          required: ['sign', 'pts', 'reason'],
+          additionalProperties: false,
+        },
+      },
       callout: { type: 'string' },
       explanation: { type: 'string' },
       characterBio: { type: 'string' },
@@ -63,7 +82,15 @@ const VERDICT_SCHEMA = {
         items: { type: 'string' },
       },
     },
-    required: ['stats', 'className', 'callout', 'explanation', 'characterBio', 'roasts'],
+    required: [
+      'stats',
+      'className',
+      'modifiers',
+      'callout',
+      'explanation',
+      'characterBio',
+      'roasts',
+    ],
     additionalProperties: false,
   },
 }
@@ -155,6 +182,20 @@ export function parseVerdictJSON(text) {
   if (typeof parsed.className !== 'string' || !parsed.className.trim()) {
     delete parsed.className
   }
+  // AI-generated score modifiers — validate shape, drop if malformed so the
+  // deterministic scoring is used instead.
+  const modsOk =
+    Array.isArray(parsed.modifiers) &&
+    parsed.modifiers.length === 9 &&
+    parsed.modifiers.every(
+      (m) =>
+        m &&
+        (m.sign === '+' || m.sign === '-') &&
+        typeof m.pts === 'number' &&
+        Number.isFinite(m.pts) &&
+        typeof m.reason === 'string',
+    )
+  if (!modsOk) delete parsed.modifiers
   if (!parsed.explanation && parsed.subtitle) {
     parsed.explanation = parsed.subtitle
   }
@@ -240,6 +281,28 @@ export async function getAuraVerdict(scoreResult, selectedAnime) {
         }
       }
 
+      // AI-assisted scoring: use the model's per-anime modifiers when valid,
+      // keeping the deterministic base score and recomputing the final total.
+      let finalScoreResult = scoreResult
+      if (Array.isArray(verdict.modifiers)) {
+        const mods = verdict.modifiers.map((m, i) => ({
+          mal_id: selectedAnime[i]?.mal_id,
+          animeTitle: selectedAnime[i]?.title || `Pick #${i + 1}`,
+          pts: Math.max(100, Math.min(6000, Math.round(m.pts))),
+          sign: m.sign === '-' ? '-' : '+',
+          label: m.reason,
+          genre:
+            (selectedAnime[i]?.genres?.[0] && selectedAnime[i].genres[0].name) || 'Unknown',
+        }))
+        const delta = mods.reduce((acc, m) => acc + (m.sign === '+' ? m.pts : -m.pts), 0)
+        finalScoreResult = {
+          ...scoreResult,
+          modifiers: mods,
+          finalScore: scoreResult.baseScore + delta,
+          aiScored: true,
+        }
+      }
+
       return {
         archetype: finalSheet.className,
         callout: verdict.callout,
@@ -250,6 +313,7 @@ export async function getAuraVerdict(scoreResult, selectedAnime) {
           ? verdict.roasts
           : selectedAnime.map((a, i) => offlineRoast(a, seed, i)),
         sheet: finalSheet,
+        scoreResult: finalScoreResult,
         offline: false,
       }
     } catch (err) {
