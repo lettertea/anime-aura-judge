@@ -13,6 +13,8 @@ export default function App() {
   const [verdict, setVerdict] = useState(null)
   const [isJudging, setIsJudging] = useState(false)
   const [fade, setFade] = useState(true)
+  // 'ai' = LLM verdict with local fallback; 'local' = fully deterministic, no AI.
+  const [judgeMode, setJudgeMode] = useState('ai')
 
   const handleSelectSlot = (index, anime) => {
     setSlots((prev) => {
@@ -34,15 +36,25 @@ export default function App() {
   const handleJudge = async () => {
     if (slots.some((s) => !s) || isJudging) return
     setIsJudging(true)
+    const score = computeAuraScore(slots)
+    if (judgeMode === 'local') {
+      // No-AI mode: skip the LLM entirely, use the deterministic verdict.
+      setScoreResult(score)
+      setVerdict({
+        ...localFallbackVerdict(score.seed, slots),
+        noAi: true,
+      })
+      transitionTo('results')
+      setIsJudging(false)
+      return
+    }
     try {
-      const score = computeAuraScore(slots)
       const v = await getAuraVerdict(score, slots)
       setScoreResult(score)
       setVerdict(v)
       transitionTo('results')
     } catch (err) {
       console.error('Judging failed:', err)
-      const score = computeAuraScore(slots)
       setScoreResult(score)
       setVerdict({
         ...localFallbackVerdict(score.seed, slots),
@@ -82,6 +94,8 @@ export default function App() {
             onSelectSlot={handleSelectSlot}
             onJudge={handleJudge}
             isJudging={isJudging}
+            judgeMode={judgeMode}
+            onJudgeModeChange={setJudgeMode}
           />
         ) : (
           <AuraCard

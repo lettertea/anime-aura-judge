@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Search, Loader2, X, Sparkles, AlertCircle, Gauge, Dices } from 'lucide-react'
 import { searchAnime, getRandomAnimeSet } from '../services/animeApi.js'
 
-export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }) {
+export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, judgeMode, onJudgeModeChange }) {
   const [query, setQuery] = useState('')
   const [luckyLoading, setLuckyLoading] = useState(false)
   const [luckyError, setLuckyError] = useState(null)
@@ -395,6 +395,41 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
         <p className="text-sm font-mono text-zinc-500 mb-4">
           {filledCount}/9 slots filled
         </p>
+
+        {/* Judge mode toggle: AI verdict vs fully deterministic (no AI) */}
+        <div className="inline-flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 mb-5">
+          <button
+            type="button"
+            onClick={() => onJudgeModeChange('ai')}
+            disabled={isJudging}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+              judgeMode === 'ai'
+                ? 'bg-indigo-600 text-white shadow-accent-glow'
+                : 'text-zinc-400 hover:text-zinc-100'
+            }`}
+          >
+            <Sparkles size={15} />
+            AI Judge
+          </button>
+          <button
+            type="button"
+            onClick={() => onJudgeModeChange('local')}
+            disabled={isJudging}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+              judgeMode === 'local'
+                ? 'bg-emerald-600 text-white'
+                : 'text-zinc-400 hover:text-zinc-100'
+            }`}
+          >
+            <Gauge size={15} />
+            No AI
+          </button>
+        </div>
+        {judgeMode === 'local' && (
+          <p className="text-xs text-zinc-500 mb-4 max-w-md mx-auto">
+            No-AI mode: your verdict is computed entirely by the deterministic scoring engine.
+          </p>
+        )}
         {luckyError && (
           <p className="text-sm text-rose-400 mb-3">{luckyError}</p>
         )}
@@ -444,10 +479,10 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging }
           {isJudging ? (
             <span className="flex items-center gap-2 justify-center">
               <Loader2 className="animate-spin" size={20} />
-              Consulting the aura realm...
+              {judgeMode === 'local' ? 'Crunching the numbers...' : 'Consulting the aura realm...'}
             </span>
           ) : (
-            'Judge My Grid'
+            judgeMode === 'local' ? 'Judge My Grid (No AI)' : 'Judge My Grid'
           )}
         </button>
       </div>
