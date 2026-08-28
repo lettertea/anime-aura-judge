@@ -26,7 +26,7 @@ const GENRE_LABELS = {
   Boys: 'fujoshi enrolled',
   Girls: 'moe-ified beyond repair',
   Parody: 'irony-poisoned memelord',
-  Samural: 'honor-bound weeb',
+  Samurai: 'honor-bound weeb',
   Space: 'astral escapism enjoyer',
   Military: 'tactics-brained strategist',
   School: 'never left the classroom',
