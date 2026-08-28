@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, RotateCcw, Loader2, WifiOff, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Download, RotateCcw, Loader2, WifiOff, AlertCircle, ChevronDown, ChevronUp, Gauge } from 'lucide-react'
 import ScoreBreakdown from './ScoreBreakdown.jsx'
 
 export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset }) {
@@ -12,7 +12,11 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   const [includeInExport, setIncludeInExport] = useState(false)
 
   const { baseScore, finalScore, modifiers } = scoreResult
-  const { archetype, subtitle, callout, offline } = verdict
+  const { archetype, explanation, subtitle, callout, offline } = verdict
+  const modifierSum = modifiers.reduce(
+    (acc, m) => acc + (m.sign === '+' ? m.pts : -m.pts),
+    0,
+  )
 
   const handleDownload = async () => {
     if (exporting || !cardRef.current) return
@@ -38,22 +42,32 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   }
 
   return (
-    <div className="w-[1280px] mx-auto py-10">
-      <div ref={cardRef} className="w-[900px] mx-auto bg-abyss border-2 border-aura-purple/50 rounded-2xl shadow-glow p-8">
-        <div className="text-center mb-6">
-          <p className="text-xs font-bold tracking-[0.4em] text-aura-pink uppercase">
+    <div className="w-[1280px] mx-auto py-12">
+      <div
+        ref={cardRef}
+        className="w-[900px] mx-auto bg-zinc-900/60 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-card p-8"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-accent-glow">
+              <Gauge size={18} />
+            </span>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
+              Anime Aura Judge
+            </h1>
+          </div>
+          <span className="px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900 text-xs font-mono uppercase tracking-widest text-zinc-400">
             Official Aura Assessment
-          </p>
-          <h1 className="text-3xl font-black mt-1 bg-gradient-to-r from-aura-purple to-aura-pink bg-clip-text text-transparent">
-            ANIME AURA JUDGE
-          </h1>
+          </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        {/* Grid */}
+        <div className="grid grid-cols-3 gap-3 mb-8">
           {selectedAnime.map((anime) => (
             <div
               key={anime.mal_id}
-              className="relative w-full h-[220px] rounded-lg overflow-hidden border border-aura-purple/30"
+              className="relative w-full h-[220px] rounded-lg overflow-hidden border border-zinc-800"
             >
               <img
                 src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url}
@@ -64,64 +78,102 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
           ))}
         </div>
 
-        <div className="bg-void rounded-xl border border-aura-pink/30 p-6 text-center mb-6">
-          <p className="text-slate-400 text-sm font-semibold tracking-widest uppercase">
+        {/* Final Score — KPI card */}
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 text-center shadow-2xl mb-8">
+          <p className="text-xs font-mono uppercase tracking-widest text-zinc-400">
             Final Aura Score
           </p>
-          <p className="text-6xl font-black mt-2 bg-gradient-to-r from-aura-purple via-aura-neon to-aura-pink bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(217,70,239,0.4)]">
+          <p className="text-5xl font-extrabold tracking-tight mt-3 bg-gradient-to-b from-white to-zinc-300 bg-clip-text text-transparent">
             {finalScore.toLocaleString()}
           </p>
-          <p className="text-slate-500 text-xs mt-2">
-            base {baseScore.toLocaleString()} + modifiers
+          <p className="text-xs font-mono text-zinc-500 mt-3">
+            base {baseScore.toLocaleString()} + 9 anime modifiers ({modifierSum >= 0 ? '+' : ''}{modifierSum.toLocaleString()})
           </p>
         </div>
 
-        <div className="space-y-3 mb-6">
-          {modifiers.map((m, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between bg-void border border-slate-700 rounded-lg px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="font-semibold text-slate-100 truncate">{m.animeTitle}</p>
-                <p className="text-xs text-slate-500">{m.label}</p>
-              </div>
-              <span
-                className={`ml-4 shrink-0 text-xl font-black ${
-                  m.sign === '+' ? 'text-emerald-400' : 'text-aura-pink'
-                }`}
+        {/* All 9 Anime Contributions */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-mono uppercase tracking-widest text-zinc-400">
+              Grid Anime Contributions (All 9 Titles)
+            </p>
+            <span className="text-xs font-mono text-zinc-500">
+              9 of 9 accounted
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {modifiers.map((m, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 hover:border-zinc-700 transition-all"
               >
-                {m.sign}
-                {m.pts.toLocaleString()}
-              </span>
-            </div>
-          ))}
+                <div className="min-w-0 pr-3">
+                  <p className="font-medium text-sm text-zinc-200 truncate">
+                    <span className="text-zinc-500 font-mono text-xs mr-1.5">#{i + 1}</span>
+                    {m.animeTitle}
+                  </p>
+                  <p className="text-xs text-zinc-500 font-mono mt-0.5 truncate">{m.label}</p>
+                </div>
+                <span
+                  className={`shrink-0 px-2.5 py-1 rounded-md border font-mono text-xs font-semibold ${
+                    m.sign === '+'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                  }`}
+                >
+                  {m.sign}
+                  {m.pts.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="text-center border-t border-slate-800 pt-6">
-          <p className="text-xs font-bold tracking-[0.3em] text-slate-500 uppercase mb-2">
-            Archetype
-          </p>
-          <h2 className="text-3xl font-black text-aura-neon drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]">
+        {/* Analysis Summary */}
+        <div className="border-t border-zinc-800 pt-8">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-mono uppercase tracking-widest text-zinc-400">
+              Analysis Summary
+            </p>
+            <span className="px-2.5 py-0.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 text-indigo-300 text-xs font-mono">
+              Holistic Evaluation
+            </span>
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-emerald-300">
             {archetype}
           </h2>
-          <p className="text-slate-300 mt-3 italic">{subtitle}</p>
-          <p className="text-aura-pink font-bold mt-4">“{callout}”</p>
+          {callout && (
+            <div className="mt-3 inline-block bg-zinc-800/60 border border-zinc-700/50 px-4 py-2 rounded-lg text-zinc-200 font-medium text-sm">
+              “{callout}”
+            </div>
+          )}
+          <div className="mt-5 space-y-3 bg-zinc-900/40 border border-zinc-800/80 p-5 rounded-xl border-l-4 border-l-indigo-500">
+            {(explanation || subtitle || '')
+              .split('\n\n')
+              .filter(Boolean)
+              .map((paragraph, idx) => (
+                <p key={idx} className="text-sm text-zinc-300 leading-relaxed">
+                  {paragraph}
+                </p>
+              ))}
+          </div>
         </div>
 
-        {offline && (
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
-            <WifiOff size={14} />
-            <span>offline mode — verdict generated locally</span>
-          </div>
-        )}
-
-        <div className="text-center mt-6 text-[10px] text-slate-600 tracking-widest uppercase">
-          Deterministic scoring · {offline ? 'Powered by Jikan (Local Fallback)' : 'Powered by Jikan + OpenRouter'}
+        {/* Status footer strip */}
+        <div className="mt-8 pt-4 border-t border-zinc-800/60 flex items-center justify-center gap-3 text-xs font-mono text-zinc-500">
+          {offline && (
+            <span className="inline-flex items-center gap-1.5">
+              <WifiOff size={12} />
+              offline mode
+            </span>
+          )}
+          <span>deterministic scoring</span>
+          <span>·</span>
+          <span>{offline ? 'Powered by Jikan (Local Fallback)' : 'Powered by Jikan + OpenRouter (Gemini 3.7 Flash)'}</span>
         </div>
 
         {showBreakdown && includeInExport && (
-          <div className="mt-6 border-t border-slate-800 pt-4">
+          <div className="mt-6 border-t border-zinc-800 pt-4">
             <ScoreBreakdown
               selectedAnime={selectedAnime}
               scoreResult={scoreResult}
@@ -142,18 +194,18 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
       <div className="w-[900px] mx-auto mt-4 flex justify-center">
         <button
           onClick={() => setShowBreakdown(!showBreakdown)}
-          className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold border border-slate-700 text-slate-400 hover:text-aura-neon hover:border-aura-neon/50 transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors cursor-pointer"
         >
           {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           {showBreakdown ? 'Hide full analysis' : 'Show full analysis'}
         </button>
         {showBreakdown && (
-          <label className="flex items-center gap-2 px-5 py-2 text-sm text-slate-500 cursor-pointer select-none">
+          <label className="flex items-center gap-2 px-5 py-2 text-sm text-zinc-500 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={includeInExport}
               onChange={(e) => setIncludeInExport(e.target.checked)}
-              className="accent-fuchsia-500 cursor-pointer"
+              className="accent-indigo-500 cursor-pointer"
             />
             include in card export
           </label>
@@ -161,12 +213,12 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
       </div>
 
       {exportError && (
-        <div className="w-[900px] mx-auto mt-4 p-4 rounded-xl bg-red-950/40 border border-red-500/40 flex items-center gap-3 text-red-300 text-sm">
-          <AlertCircle size={18} className="shrink-0 text-red-400" />
+        <div className="w-[900px] mx-auto mt-4 p-4 rounded-xl bg-rose-950/30 border border-rose-500/20 flex items-center gap-3 text-rose-300 text-sm">
+          <AlertCircle size={18} className="shrink-0 text-rose-400" />
           <p className="flex-1">{exportError}</p>
           <button
             onClick={handleDownload}
-            className="text-xs font-bold underline hover:text-white cursor-pointer"
+            className="text-xs font-semibold underline hover:text-white cursor-pointer"
           >
             Retry
           </button>
@@ -177,10 +229,10 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
         <button
           onClick={handleDownload}
           disabled={exporting}
-          className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all duration-200 ${
+          className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all duration-200 ${
             exporting
-              ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
-              : 'bg-gradient-to-r from-aura-purple to-aura-pink text-white shadow-glow hover:scale-105 active:scale-95 cursor-pointer'
+              ? 'bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
           }`}
         >
           {exporting ? (
@@ -195,7 +247,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
             <button
               onClick={onReset}
               disabled={exporting}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-aura-pink text-white shadow-glow-pink hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-rose-600 text-white hover:bg-rose-500 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
             >
               <RotateCcw size={18} />
               Confirm Reset?
@@ -203,7 +255,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
             <button
               onClick={() => setConfirmReset(false)}
               disabled={exporting}
-              className="px-4 py-3 rounded-xl font-semibold border border-slate-700 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              className="px-4 py-3 rounded-xl font-medium border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -212,7 +264,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
           <button
             onClick={() => setConfirmReset(true)}
             disabled={exporting}
-            className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold border border-slate-700 text-slate-300 hover:border-aura-pink/60 hover:text-aura-pink transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold border border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <RotateCcw size={18} />
             Reset

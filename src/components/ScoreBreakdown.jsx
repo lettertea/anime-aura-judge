@@ -2,29 +2,29 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 const STAT_BAR_COLORS = {
-  Chaos: 'from-red-500 to-orange-400',
-  Comf: 'from-sky-400 to-cyan-300',
+  Chaos: 'from-rose-500 to-orange-400',
+  Comf: 'from-sky-500 to-cyan-400',
   Brainrot: 'from-violet-500 to-fuchsia-400',
-  Suffering: 'from-aura-purple to-aura-pink',
-  Rizz: 'from-emerald-400 to-lime-300',
+  Suffering: 'from-indigo-500 to-violet-400',
+  Rizz: 'from-emerald-500 to-lime-400',
 }
 
 function Section({ title, icon, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="bg-void border border-slate-700 rounded-xl overflow-hidden">
+    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-800/40 transition-colors cursor-pointer"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-zinc-800/40 transition-colors cursor-pointer"
       >
-        <span className="font-bold text-slate-200 tracking-wide">
+        <span className="font-medium text-zinc-200 tracking-tight">
           <span className="mr-2">{icon}</span>
           {title}
         </span>
         {open ? (
-          <ChevronUp size={18} className="text-aura-pink shrink-0" />
+          <ChevronUp size={18} className="text-indigo-400 shrink-0" />
         ) : (
-          <ChevronDown size={18} className="text-slate-500 shrink-0" />
+          <ChevronDown size={18} className="text-zinc-500 shrink-0" />
         )}
       </button>
       {open && <div className="px-5 pb-5 pt-1">{children}</div>}
@@ -36,18 +36,18 @@ function StatBar({ stat, value, icon, blurb }) {
   return (
     <div className="mb-3 last:mb-0">
       <div className="flex items-baseline justify-between mb-1">
-        <span className="text-sm font-bold text-slate-200">
+        <span className="text-sm font-medium text-zinc-200">
           {icon} {stat}
         </span>
-        <span className="text-xs font-mono text-slate-400">{value}/100</span>
+        <span className="text-xs font-mono text-zinc-400">{value}/100</span>
       </div>
-      <div className="h-2.5 rounded-full bg-slate-800 overflow-hidden">
+      <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
         <div
           className={`h-full rounded-full bg-gradient-to-r ${STAT_BAR_COLORS[stat]} transition-all duration-700`}
           style={{ width: `${value}%` }}
         />
       </div>
-      <p className="text-[11px] text-slate-500 mt-1 italic">{blurb}</p>
+      <p className="text-[11px] text-zinc-500 mt-1 italic">{blurb}</p>
     </div>
   )
 }
@@ -87,17 +87,17 @@ export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) 
               ))}
             </div>
             <div className="flex flex-col justify-center">
-              <p className="text-xs font-bold tracking-[0.3em] text-slate-500 uppercase mb-1">
+              <p className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-1">
                 Class
               </p>
-              <p className="text-2xl font-black text-aura-neon leading-tight">
+              <p className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-emerald-300 leading-tight">
                 {sheet.className}
               </p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs font-mono text-zinc-500 mt-1">
                 top stat: {sheet.icons[sheet.topStat]} {sheet.topStat}
               </p>
               {characterBio && (
-                <p className="text-sm text-slate-300 mt-4 italic leading-relaxed">
+                <p className="text-sm text-zinc-300 mt-4 italic leading-relaxed">
                   {characterBio}
                 </p>
               )}
@@ -113,18 +113,18 @@ export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) 
             {selectedAnime.map((anime, i) => (
               <div
                 key={anime.mal_id}
-                className="flex items-start gap-3 bg-slate-900/60 border border-slate-800 rounded-lg px-4 py-3"
+                className="flex items-start gap-3 bg-zinc-900/30 border border-zinc-800/80 rounded-lg px-4 py-3"
               >
                 <img
                   src={anime.images?.jpg?.small_image_url || anime.images?.jpg?.image_url}
                   alt=""
-                  className="w-9 h-12 object-cover rounded shrink-0"
+                  className="w-9 h-12 object-cover rounded shrink-0 border border-zinc-800"
                 />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-200 truncate">
+                  <p className="text-sm font-medium text-zinc-200 truncate">
                     {anime.title}
                   </p>
-                  <p className="text-xs text-slate-400 mt-0.5">{roasts[i]}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{roasts[i]}</p>
                 </div>
               </div>
             ))}
@@ -135,28 +135,62 @@ export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) 
       {/* The Math */}
       <Section title="The Math" icon="🧮">
         <div className="font-mono text-sm space-y-2">
-          <div className="flex justify-between text-slate-400">
+          <div className="flex justify-between text-zinc-400">
             <span>seed (from your 9 mal_ids)</span>
-            <span className="text-slate-200">{seed}</span>
+            <span className="text-zinc-200">{seed}</span>
           </div>
-          <div className="flex justify-between text-slate-400">
-            <span>base score</span>
-            <span className="text-slate-200">+{baseScore.toLocaleString()}</span>
+          <div className="flex justify-between text-zinc-400">
+            <span>base grid resonance</span>
+            <span className="text-zinc-200">
+              +{scoreResult.baseDetails?.baseline?.toLocaleString() || '10,000'}
+            </span>
+          </div>
+          {scoreResult.baseDetails?.diversityBonus > 0 && (
+            <div className="flex justify-between text-zinc-400">
+              <span>
+                genre diversity bonus ({scoreResult.baseDetails.uniqueGenres} unique genres)
+              </span>
+              <span className="text-emerald-400">
+                +{scoreResult.baseDetails.diversityBonus.toLocaleString()}
+              </span>
+            </div>
+          )}
+          {scoreResult.baseDetails?.harmonyBonus > 0 && (
+            <div className="flex justify-between text-zinc-400">
+              <span>score harmony bonus</span>
+              <span className="text-emerald-400">
+                +{scoreResult.baseDetails.harmonyBonus.toLocaleString()}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between text-zinc-300 border-b border-zinc-800/80 pb-2 font-medium">
+            <span>total base score</span>
+            <span className="text-zinc-100">+{baseScore.toLocaleString()}</span>
+          </div>
+
+          <div className="pt-2 pb-1 text-xs text-zinc-500 uppercase tracking-wider font-semibold">
+            All 9 Anime Contributions
           </div>
           {modifiers.map((m, i) => (
-            <div key={i} className="flex justify-between">
-              <span className="text-slate-500 truncate mr-4">
-                {m.animeTitle} — {m.label}
+            <div key={i} className="flex justify-between items-center text-xs sm:text-sm">
+              <span className="text-zinc-400 truncate mr-4">
+                <span className="text-zinc-600 mr-2 font-mono">#{i + 1}</span>
+                {m.animeTitle} <span className="text-zinc-600">—</span>{' '}
+                <span className="text-zinc-500">{m.label}</span>
               </span>
-              <span className={m.sign === '+' ? 'text-emerald-400' : 'text-aura-pink'}>
+              <span
+                className={`shrink-0 font-medium ${
+                  m.sign === '+' ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
                 {m.sign}
                 {m.pts.toLocaleString()}
               </span>
             </div>
           ))}
-          <div className="border-t border-slate-800 pt-2 flex justify-between font-bold">
-            <span className="text-slate-300">final aura</span>
-            <span className="bg-gradient-to-r from-aura-purple to-aura-pink bg-clip-text text-transparent">
+          <div className="border-t border-zinc-800 pt-2 flex justify-between font-semibold">
+            <span className="text-zinc-300">final aura</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-emerald-300">
               {finalScore.toLocaleString()}
             </span>
           </div>
@@ -170,7 +204,7 @@ export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) 
             {genreTags.map((g) => (
               <span
                 key={g}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/80 border border-aura-purple/30 text-slate-300"
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800/60 border border-zinc-700/60 text-zinc-300"
               >
                 {g}
               </span>
