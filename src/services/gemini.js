@@ -40,7 +40,7 @@ const SYSTEM_PROMPT =
   `In a final paragraph, zoom out: reflect on the overall trajectory or ` +
   `throughline of their taste (what they seem to seek from anime, how their picks complement or clash with each ` +
   `other as a collection), and close with a grounded, forward-looking note about what this says about the viewer ` +
-  `they are becoming.\n` +
+  `they are becoming. Separate paragraphs with a blank line (double newline).\n` +
   `6. characterBio: 2-3 sentences of RPG-style flavor text about the user as a character of that class, referencing their top stats. Keep it understated.\n` +
   `7. roasts: An array containing exactly 9 entries (one per anime title in the exact same order): a witty, ` +
   `teasing one-liner about why they picked that show — the kind of joke that stings slightly because it's ` +
@@ -258,10 +258,16 @@ export async function getAuraVerdict(scoreResult, selectedAnime) {
       const verdict = parseVerdictJSON(text)
       const roastsOk =
         Array.isArray(verdict.roasts) && verdict.roasts.length === selectedAnime.length
-      const explanation =
-        verdict.explanation ||
-        verdict.subtitle ||
+      const rawExplanation =
+        verdict.explanation || verdict.subtitle ||
         generateHolisticExplanation(selectedAnime, sheet, seed)
+      // Normalize paragraph breaks: some models emit single newlines between
+      // paragraphs, which would break the '\n\n' paragraph splitter downstream.
+      const explanation = rawExplanation
+        .split(/\n+/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .join('\n\n')
 
       // AI-assisted character sheet: use the model's stats/class when valid,
       // falling back to the deterministic engine's values otherwise.
