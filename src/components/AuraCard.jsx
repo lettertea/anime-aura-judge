@@ -10,7 +10,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   const [showBreakdown, setShowBreakdown] = useState(true)
 
   const { baseScore, finalScore, modifiers } = scoreResult
-  const { archetype, explanation, subtitle, callout, offline } = verdict
+  const { archetype, explanation, subtitle, callout, offline, noAi } = verdict
   const modifierSum = modifiers.reduce(
     (acc, m) => acc + (m.sign === '+' ? m.pts : -m.pts),
     0,
@@ -157,9 +157,21 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
             offline mode
           </span>
         )}
-        <span>deterministic scoring</span>
+        <span>
+          {offline
+            ? 'deterministic fallback scoring'
+            : noAi
+              ? 'deterministic scoring'
+              : 'AI-evaluated scoring'}
+        </span>
         <span>·</span>
-        <span>{offline ? 'Powered by Jikan (Local Fallback)' : 'Powered by Jikan + OpenRouter (Gemini 3.7 Flash)'}</span>
+        <span>
+          {offline
+            ? 'Powered by Jikan (Local Fallback)'
+            : noAi
+              ? 'Powered by Jikan (No AI)'
+              : 'Powered by Jikan + OpenRouter (Gemini 3.7 Flash)'}
+        </span>
       </div>
     </>
   )
