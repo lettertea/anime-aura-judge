@@ -103,6 +103,145 @@ export function computeAuraScore(selectedAnime) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// RPG Character Sheet — deterministic stats derived from grid genres + seed.
+// ---------------------------------------------------------------------------
+
+const STAT_GENRE_MAP = {
+  Chaos: ['Action', 'Horror', 'Thriller', 'Sports', 'Mecha', 'Samurai'],
+  Comf: ['Slice of Life', 'Music', 'Kids', 'Gourmet', 'Parody'],
+  Brainrot: ['Mystery', 'Psychological', 'Sci-Fi', 'Space', 'Military', 'Avant'],
+  Suffering: ['Drama', 'Horror', 'Thriller', 'Psychological', 'Boys'],
+  Rizz: ['Romance', 'Comedy', 'Ecchi', 'Harem', 'Girls', 'School'],
+}
+
+export const STAT_KEYS = ['Chaos', 'Comf', 'Brainrot', 'Suffering', 'Rizz']
+
+const STAT_ICONS = {
+  Chaos: '⚡',
+  Comf: '🫧',
+  Brainrot: '🧠',
+  Suffering: '😭',
+  Rizz: '😏',
+}
+
+const STAT_BLURBS = {
+  Chaos: 'you main high-APM content and it shows',
+  Comf: 'your nervous system is sponsored by iyashikei',
+  Brainrot: 'you watch anime with a spreadsheet open',
+  Suffering: 'you collect emotional damage like trading cards',
+  Rizz: 'somehow every pick has a confession scene',
+}
+
+const CLASS_PREFIX = {
+  Chaos: 'Chaotic',
+  Comf: 'Comfy',
+  Brainrot: 'Brainrotted',
+  Suffering: 'Doomed',
+  Rizz: 'Rizzler',
+}
+
+const CLASS_NOUNS = {
+  Chaos: ['Warlock', 'Berserker', 'Monk', 'Bard'],
+  Comf: ['Healer', 'Druid', 'Bard', 'Innkeeper'],
+  Brainrot: ['Archmage', 'Artificer', 'Scribe', 'Oracle'],
+  Suffering: ['Necromancer', 'Warlock', 'Rogue', 'Martyr'],
+  Rizz: ['Rogue', 'Bard', 'Enchanter', 'Duke'],
+}
+
+const CLASS_SUFFIXES = [
+  'of the Backlog',
+  'of Peak Fiction',
+  'of the 2am Watchlist',
+  'of Seasonal Rot',
+  'of the Infinite PTW',
+  'of Sub-Only Truth',
+  'of the Dropped Manga',
+  'of Dub Disrespect',
+]
+
+export function computeStats(selectedAnime, seed) {
+  const raw = Object.fromEntries(STAT_KEYS.map((k) => [k, 0]))
+  for (const anime of selectedAnime) {
+    const genres = (anime.genres || []).map((g) => g.name)
+    for (const stat of STAT_KEYS) {
+      for (const g of genres) {
+        if (STAT_GENRE_MAP[stat].includes(g)) raw[stat] += 1
+      }
+    }
+  }
+  // Seed-based jitter so sparse grids still produce varied bars, then
+  // normalize to 0-100 with a floor so nothing reads as literally zero.
+  const jittered = STAT_KEYS.map((k, i) => raw[k] * 10 + ((seed >> (i * 3)) % 25))
+  const max = Math.max(...jittered, 1)
+  const stats = {}
+  STAT_KEYS.forEach((k, i) => {
+    stats[k] = Math.max(8, Math.round((jittered[i] / max) * 100))
+  })
+
+  // Class: prefix from top stat, noun from runner-up, suffix from seed.
+  const ranked = [...STAT_KEYS].sort((a, b) => stats[b] - stats[a] || a.localeCompare(b))
+  const top = ranked[0]
+  const second = ranked[1]
+  const nouns = CLASS_NOUNS[second]
+  const className = `${CLASS_PREFIX[top]} ${nouns[seed % nouns.length]} ${CLASS_SUFFIXES[(seed >> 5) % CLASS_SUFFIXES.length]}`
+
+  return {
+    stats,
+    icons: STAT_ICONS,
+    blurbs: STAT_BLURBS,
+    topStat: top,
+    className,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Offline roast templates — deterministic per-anime one-liners.
+// ---------------------------------------------------------------------------
+
+const ROAST_TEMPLATES = {
+  Action: 'picked for the plot. the plot was fighting. respect.',
+  Adventure: 'wanderlust so strong you forgot season 2 exists',
+  Avant: 'nobody knows what happened and you refuse to explain',
+  Comedy: 'your humor is legally distinct from brain damage',
+  Drama: 'you did this to yourself and you would do it again',
+  Ecchi: 'we all saw it. we are not going to talk about it.',
+  Fantasy: 'escapism speedrun, any% no grass',
+  Gourmet: 'watched on an empty stomach. criminal.',
+  Harem: 'the protagonist chose nobody and neither did you',
+  Horror: 'you call this fun. HR would like a word.',
+  Kids: 'healing your inner child or just avoiding adulthood?',
+  Mecha: 'big robot enjoyer. the robot is doing the heavy lifting.',
+  Military: 'you have opinions about logistics now',
+  Music: 'cried at a concert that never happened',
+  Mystery: 'you guessed the twist. you tell everyone. constantly.',
+  Parody: 'irony levels critical. sincerity not found.',
+  Psychological: 'this is not entertainment, this is homework',
+  Romance: 'kicked your feet. denied it in public.',
+  School: 'graduated years ago. still enrolled spiritually.',
+  'Sci-Fi': 'will explain the tech tree unprompted',
+  'Slice of Life': 'nothing happened and it changed you',
+  Space: 'the final frontier was your couch',
+  Sports: 'screamed at fictional teenagers. no regrets.',
+  Supernatural: 'spiritually unwell, aesthetically correct',
+  Thriller: 'resting heart rate: cancelled',
+  Boys: 'the shipping wall sees everything',
+  Girls: 'moe tolerance: maximum',
+  Samurai: 'honor-bound and chronically online',
+  Unknown: 'defied categorization. the judge is concerned.',
+}
+
+export function offlineRoast(anime, seed, index) {
+  const g = primaryGenre(anime)
+  const base = ROAST_TEMPLATES[g] || ROAST_TEMPLATES.Unknown
+  const variants = [
+    base,
+    `${anime.title}: ${base}`,
+    `${base} (${anime.title} was the tell.)`,
+  ]
+  return variants[(seed + index * 7) % variants.length]
+}
+
 const FALLBACK_ARCHETYPES = [
   'Chaotic Sentimentalist',
   'Egoist Terminal Online',
@@ -118,11 +257,15 @@ const FALLBACK_ARCHETYPES = [
   'Manifesting A Season 2',
 ]
 
-export function localFallbackVerdict(seed) {
-  const archetype = FALLBACK_ARCHETYPES[seed % 12]
+export function localFallbackVerdict(seed, selectedAnime) {
+  const sheet = computeStats(selectedAnime || [], seed)
+  const roasts = (selectedAnime || []).map((a, i) => offlineRoast(a, seed, i))
   return {
-    archetype,
+    archetype: sheet.className,
     subtitle: 'The grid speaks for itself, and it is not apologizing.',
     callout: 'Touch grass or start a cult, honestly.',
+    characterBio: `A level ${((seed % 40) + 10)} ${sheet.className}. Specializes in ${sheet.topStat.toLowerCase()} builds and refuses to respec.`,
+    roasts,
+    sheet,
   }
 }

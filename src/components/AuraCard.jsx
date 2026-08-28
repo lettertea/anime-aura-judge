@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, RotateCcw, Loader2, WifiOff, AlertCircle } from 'lucide-react'
+import { Download, RotateCcw, Loader2, WifiOff, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import ScoreBreakdown from './ScoreBreakdown.jsx'
 
 export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset }) {
   const cardRef = useRef(null)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState(null)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [showBreakdown, setShowBreakdown] = useState(false)
+  const [includeInExport, setIncludeInExport] = useState(false)
 
   const { baseScore, finalScore, modifiers } = scoreResult
   const { archetype, subtitle, callout, offline } = verdict
@@ -116,6 +119,45 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
         <div className="text-center mt-6 text-[10px] text-slate-600 tracking-widest uppercase">
           Deterministic scoring · {offline ? 'Powered by Jikan (Local Fallback)' : 'Powered by Jikan + OpenRouter'}
         </div>
+
+        {showBreakdown && includeInExport && (
+          <div className="mt-6 border-t border-slate-800 pt-4">
+            <ScoreBreakdown
+              selectedAnime={selectedAnime}
+              scoreResult={scoreResult}
+              verdict={verdict}
+            />
+          </div>
+        )}
+      </div>
+
+      {showBreakdown && !includeInExport && (
+        <ScoreBreakdown
+          selectedAnime={selectedAnime}
+          scoreResult={scoreResult}
+          verdict={verdict}
+        />
+      )}
+
+      <div className="w-[900px] mx-auto mt-4 flex justify-center">
+        <button
+          onClick={() => setShowBreakdown(!showBreakdown)}
+          className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold border border-slate-700 text-slate-400 hover:text-aura-neon hover:border-aura-neon/50 transition-colors cursor-pointer"
+        >
+          {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {showBreakdown ? 'Hide full analysis' : 'Show full analysis'}
+        </button>
+        {showBreakdown && (
+          <label className="flex items-center gap-2 px-5 py-2 text-sm text-slate-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeInExport}
+              onChange={(e) => setIncludeInExport(e.target.checked)}
+              className="accent-fuchsia-500 cursor-pointer"
+            />
+            include in card export
+          </label>
+        )}
       </div>
 
       {exportError && (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import GridSelector from './components/GridSelector.jsx'
 import AuraCard from './components/AuraCard.jsx'
-import { computeAuraScore } from './utils/scoring.js'
+import { computeAuraScore, localFallbackVerdict } from './utils/scoring.js'
 import { getAuraVerdict } from './services/gemini.js'
 
 const EMPTY_SLOTS = Array(9).fill(null)
@@ -45,9 +45,8 @@ export default function App() {
       const score = computeAuraScore(slots)
       setScoreResult(score)
       setVerdict({
-        archetype: 'Aura Reader Error',
+        ...localFallbackVerdict(score.seed, slots),
         subtitle: 'The judge tripped over the cable, but your grid remains guilty.',
-        callout: 'Touch grass or start a cult, honestly.',
         offline: true,
       })
       transitionTo('results')

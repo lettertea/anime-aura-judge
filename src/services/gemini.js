@@ -1,15 +1,19 @@
 import { OpenRouter } from '@openrouter/sdk'
-import { localFallbackVerdict } from '../utils/scoring.js'
+import { localFallbackVerdict, computeStats, offlineRoast } from '../utils/scoring.js'
 
 const MODEL = 'anthropic/claude-3.5-sonnet'
 
 const SYSTEM_PROMPT =
   'You are an unhinged, perceptive anime analyst. You judge people\'s souls ' +
-  'from their watchlists with brutal wit and affection. Your subtitle ' +
-  '(1-2 sentences) MUST reference specific titles from the user\'s list. ' +
-  'Your callout is exactly one punchy line (e.g., \'Touch grass or start a ' +
-  'cult, honestly.\'). Respond with ONLY valid JSON — no markdown, no code ' +
-  'fences, no preamble.'
+  'from their watchlists with brutal wit and affection. The user\'s RPG ' +
+  'class name is pre-computed — do NOT change it. Your subtitle (1-2 ' +
+  'sentences) MUST reference specific titles from the user\'s list. Your ' +
+  'callout is exactly one punchy line (e.g., \'Touch grass or start a cult, ' +
+  'honestly.\'). characterBio is 2-3 sentences of D&D-style flavor text ' +
+  'about the user as a character of that class, referencing their stats. ' +
+  'roasts must contain exactly one entry per title, in the same order: a ' +
+  'one-line savage-but-affectionate roast of why they picked that anime. ' +
+  'Respond with ONLY valid JSON — no markdown, no code fences, no preamble.'
 
 const VERDICT_SCHEMA = {
   name: 'aura_verdict',
@@ -20,8 +24,13 @@ const VERDICT_SCHEMA = {
       archetype: { type: 'string' },
       subtitle: { type: 'string' },
       callout: { type: 'string' },
+      characterBio: { type: 'string' },
+      roasts: {
+        type: 'array',
+        items: { type: 'string' },
+      },
     },
-    required: ['archetype', 'subtitle', 'callout'],
+    required: ['archetype', 'subtitle', 'callout', 'characterBio', 'roasts'],
     additionalProperties: false,
   },
 }
@@ -81,9 +90,10 @@ export function parseVerdictJSON(text) {
   if (end === -1) throw new Error('unbalanced JSON object')
   const parsed = JSON.parse(cleaned.slice(start, end + 1))
   if (
-    typeof parsed.archetype !== 'string' ||
     typeof parsed.subtitle !== 'string' ||
-    typeof parsed.callout !== 'string'
+    typeof parsed.callout !== 'string' ||
+    typeof parsed.characterBio !== 'string' ||
+    !Array.isArray(parsed.roasts)
   ) {
     throw new Error('schema mismatch')
   }
@@ -126,6 +136,7 @@ async function requestOnce(scoreResult) {
 
 export async function getAuraVerdict(scoreResult, selectedAnime) {
   const { seed, baseScore, finalScore, modifiers } = scoreResult
+  const sheet = computeStats(selectedAnime, seed)
   const payload = {
     ...scoreResult,
     titles: selectedAnime.map((a) => ({
@@ -133,21 +144,36 @@ export async function getAuraVerdict(scoreResult, selectedAnime) {
       genre: (a.genres && a.genres[0] && a.genres[0].name) || 'Unknown',
       score: a.score ?? null,
     })),
+    sheet: { className: sheet.className, stats: sheet.stats, topStat: sheet.topStat },
   }
 
   if (!import.meta.env.VITE_OPENROUTER_API_KEY) {
-    return { ...localFallbackVerdict(seed), offline: true }
+    return { ...localFallbackVerdict(seed, selectedAnime), offline: true }
   }
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const text = await requestOnce(payload)
       const verdict = parseVerdictJSON(text)
-      return { ...verdict, offline: false }
+      // Defensive: the class name stays deterministic, and roasts must line
+      // up 1:1 with the grid. Fall back per-field if the LLM misbehaves.
+      const roastsOk =
+        Array.isArray(verdict.roasts) && verdict.roasts.length === selectedAnime.length
+      return {
+        archetype: sheet.className,
+        subtitle: verdict.subtitle,
+        callout: verdict.callout,
+        characterBio: typeof verdict.characterBio === 'string' ? verdict.characterBio : '',
+        roasts: roastsOk
+          ? verdict.roasts
+          : selectedAnime.map((a, i) => offlineRoast(a, seed, i)),
+        sheet,
+        offline: false,
+      }
     } catch (err) {
       console.warn(`Aura verdict attempt ${attempt + 1} failed:`, err)
     }
   }
 
-  return { ...localFallbackVerdict(seed), offline: true }
+  return { ...localFallbackVerdict(seed, selectedAnime), offline: true }
 }
