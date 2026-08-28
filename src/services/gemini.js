@@ -1,7 +1,7 @@
 import { OpenRouter } from '@openrouter/sdk'
 import { localFallbackVerdict } from '../utils/scoring.js'
 
-const MODEL = '~anthropic/claude-sonnet-latest'
+const MODEL = 'anthropic/claude-3.5-sonnet'
 
 const SYSTEM_PROMPT =
   'You are an unhinged, perceptive anime analyst. You judge people\'s souls ' +
@@ -131,6 +131,7 @@ export async function getAuraVerdict(scoreResult, selectedAnime) {
     titles: selectedAnime.map((a) => ({
       title: a.title,
       genre: (a.genres && a.genres[0] && a.genres[0].name) || 'Unknown',
+      score: a.score ?? null,
     })),
   }
 
