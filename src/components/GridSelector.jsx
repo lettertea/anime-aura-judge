@@ -397,7 +397,8 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
         </p>
 
         {/* Judge mode toggle: AI verdict vs fully deterministic (no AI) */}
-        <div className="inline-flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 mb-5">
+        <div className="flex justify-center mb-5">
+        <div className="inline-flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
           <button
             type="button"
             onClick={() => onJudgeModeChange('ai')}
@@ -424,6 +425,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
             <Gauge size={15} />
             No AI
           </button>
+        </div>
         </div>
         {judgeMode === 'local' && (
           <p className="text-xs text-zinc-500 mb-4 max-w-md mx-auto">
