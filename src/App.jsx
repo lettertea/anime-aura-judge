@@ -26,6 +26,7 @@ export default function App() {
     setFade(false)
     setTimeout(() => {
       setView(nextView)
+      window.scrollTo({ top: 0, behavior: 'instant' })
       setFade(true)
     }, 200)
   }
