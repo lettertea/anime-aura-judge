@@ -153,6 +153,14 @@ const STAT_BLURBS = {
   Rizz: 'romance and character chemistry show up often in your picks',
 }
 
+const STAT_BLURBS_MANGA = {
+  Chaos: 'you gravitate toward high-energy, high-stakes series',
+  Comf: 'you value calm, restorative reading',
+  Brainrot: 'you like series that reward close attention',
+  Suffering: 'you don\'t shy away from emotionally heavy stories',
+  Rizz: 'romance and character chemistry show up often in your picks',
+}
+
 const CLASS_PREFIX = {
   Chaos: 'Chaotic',
   Comf: 'Comfy',
@@ -180,7 +188,20 @@ const CLASS_SUFFIXES = [
   'of Dub Disrespect',
 ]
 
+const CLASS_SUFFIXES_MANGA = [
+  'of the Backlog',
+  'of Peak Fiction',
+  'of the 2am Reading List',
+  'of Hiatus Rot',
+  'of the Infinite PTR',
+  'of Raw-Only Truth',
+  'of the Dropped Anime',
+  'of Scanlation Disrespect',
+]
+
 export function computeStats(selectedAnime, seed) {
+  const mediaType = selectedAnime?.[0]?.mediaType === 'MANGA' ? 'MANGA' : 'ANIME'
+  const copy_ = copy(mediaType)
   const raw = Object.fromEntries(STAT_KEYS.map((k) => [k, 0]))
   for (const anime of selectedAnime) {
     const genres = (anime.genres || []).map((g) => g.name)
@@ -204,12 +225,12 @@ export function computeStats(selectedAnime, seed) {
   const top = ranked[0]
   const second = ranked[1]
   const nouns = CLASS_NOUNS[second]
-  const className = `${CLASS_PREFIX[top]} ${nouns[seed % nouns.length]} ${CLASS_SUFFIXES[(seed >> 5) % CLASS_SUFFIXES.length]}`
+  const className = `${CLASS_PREFIX[top]} ${nouns[seed % nouns.length]} ${copy_.suffixes[(seed >> 5) % copy_.suffixes.length]}`
 
   return {
     stats,
     icons: STAT_ICONS,
-    blurbs: STAT_BLURBS,
+    blurbs: copy_.blurbs,
     topStat: top,
     className,
   }
@@ -251,9 +272,30 @@ const ROAST_TEMPLATES = {
   Unknown: 'hard to categorize, which is part of the appeal and the whole problem',
 }
 
+const ROAST_TEMPLATES_MANGA = {
+  ...ROAST_TEMPLATES,
+  Gourmet: 'best read on a full stomach, in hindsight',
+  Music: 'the sound effect lettering did more emotional work than most of your real conversations',
+  Samurai: 'drawn to codes of honor and disciplined storytelling. Your reading list, less so',
+  Parody: 'you appreciate a series that doesn\'t take itself seriously. Pot, kettle',
+}
+
+// Lightweight copy helper: returns media-aware template tables.
+function copy(mediaType) {
+  const isManga = mediaType === 'MANGA'
+  return {
+    blurbs: isManga ? STAT_BLURBS_MANGA : STAT_BLURBS,
+    suffixes: isManga ? CLASS_SUFFIXES_MANGA : CLASS_SUFFIXES,
+    roasts: isManga ? ROAST_TEMPLATES_MANGA : ROAST_TEMPLATES,
+    viewer: isManga ? 'reader' : 'viewer',
+    capstone: isManga ? 'your capstone manga' : 'your capstone anime',
+  }
+}
+
 export function offlineRoast(anime, seed, index) {
   const g = primaryGenre(anime)
-  const base = ROAST_TEMPLATES[g] || ROAST_TEMPLATES.Unknown
+  const templates = copy(anime.mediaType).roasts
+  const base = templates[g] || templates.Unknown
   const variants = [
     base,
     `${anime.title}: ${base}`,
@@ -284,9 +326,11 @@ export function generateHolisticExplanation(selectedAnime, sheet, seed) {
   const stats = sheet?.stats || { Chaos: 70, Comf: 50, Brainrot: 60, Suffering: 80, Rizz: 40 }
   const className = sheet?.className || 'Chaotic Scribe of Dub Disrespect'
 
+  const mediaType = (selectedAnime || [])[0]?.mediaType === 'MANGA' ? 'MANGA' : 'ANIME'
+  const copy_ = copy(mediaType)
   const titleA = titles[0] || 'your anchor title'
   const titleB = titles[Math.floor(titles.length / 2)] || 'your mid-grid pick'
-  const titleC = titles[titles.length - 1] || 'your capstone anime'
+  const titleC = titles[titles.length - 1] || copy_.capstone
   const genreList = genres.slice(0, 3).join(', ') || 'eclectic genres'
 
   const p1 =
@@ -303,7 +347,7 @@ export function generateHolisticExplanation(selectedAnime, sheet, seed) {
   const p3 =
     `Taken together, this grid reflects genuine conviction in your taste. It's specific, ` +
     `a little idiosyncratic, and consistent — the kind of selection that tells people ` +
-    `who you are as a viewer before you say a word.`
+    `who you are as a ${copy_.viewer} before you say a word.`
 
   return `${p1}\n\n${p2}\n\n${p3}`
 }
