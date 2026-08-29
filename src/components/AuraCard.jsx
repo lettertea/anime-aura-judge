@@ -61,7 +61,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
         {selectedAnime.map((anime) => (
           <div
             key={anime.mal_id}
-            className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-zinc-800"
+            className="relative w-full aspect-square rounded-lg overflow-hidden border border-zinc-800"
           >
             <img
               src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url}

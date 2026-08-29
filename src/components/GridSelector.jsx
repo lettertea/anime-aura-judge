@@ -410,7 +410,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
             const isActive = activeSlot === i
 
             return (
-              <div key={i} className="relative w-full aspect-[2/3]">
+              <div key={i} className="relative w-full aspect-square">
                 <button
                   type="button"
                   onClick={() => handleSlotClick(i)}
