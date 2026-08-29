@@ -516,6 +516,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
         {luckyError && (
           <p className="text-sm text-rose-400 mb-3">{luckyError}</p>
         )}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
         <button
           onClick={async () => {
             if (luckyLoading || isJudging) return
@@ -568,6 +569,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
             judgeMode === 'local' ? 'Judge My Grid (No AI)' : 'Judge My Grid'
           )}
         </button>
+        </div>
       </div>
 
       {/* Mobile bottom-sheet anime picker */}
