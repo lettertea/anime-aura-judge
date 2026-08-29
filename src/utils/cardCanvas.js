@@ -283,6 +283,8 @@ export async function renderCardCanvas({ selectedAnime, scoreResult, verdict, me
 
 export async function downloadCardImage(params) {
   const canvas = await renderCardCanvas(params)
+  const isManga =
+    (params.mediaType || params.selectedAnime?.[0]?.mediaType) === 'MANGA'
   const link = document.createElement('a')
   link.download = isManga ? 'manga-aura-card.png' : 'anime-aura-card.png'
   link.href = canvas.toDataURL('image/png')
