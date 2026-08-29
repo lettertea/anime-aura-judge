@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, RotateCcw, Loader2, WifiOff, AlertCircle, ChevronDown, ChevronUp, Gauge } from 'lucide-react'
+import { Download, RotateCcw, Loader2, AlertCircle, ChevronDown, ChevronUp, Gauge } from 'lucide-react'
 import ScoreBreakdown from './ScoreBreakdown.jsx'
 import { downloadCardImage } from '../utils/cardCanvas.js'
 
@@ -10,7 +10,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   const [showBreakdown, setShowBreakdown] = useState(true)
 
   const { baseScore, finalScore, modifiers } = scoreResult
-  const { archetype, explanation, subtitle, callout, offline, noAi } = verdict
+  const { archetype, explanation, subtitle, callout, offline } = verdict
   const modifierSum = modifiers.reduce(
     (acc, m) => acc + (m.sign === '+' ? m.pts : -m.pts),
     0,
@@ -149,30 +149,6 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
         </div>
       </div>
 
-      {/* Status footer strip */}
-      <div className="mt-8 pt-4 border-t border-zinc-800/60 flex items-center justify-center gap-3 text-xs font-mono text-zinc-500">
-        {offline && (
-          <span className="inline-flex items-center gap-1.5">
-            <WifiOff size={12} />
-            offline mode
-          </span>
-        )}
-        <span>
-          {offline
-            ? 'deterministic fallback scoring'
-            : noAi
-              ? 'deterministic scoring'
-              : 'AI-evaluated scoring'}
-        </span>
-        <span>·</span>
-        <span>
-          {offline
-            ? 'Powered by Jikan (Local Fallback)'
-            : noAi
-              ? 'Powered by Jikan (No AI)'
-              : 'Powered by Jikan + OpenRouter (Gemini 3.7 Flash)'}
-        </span>
-      </div>
     </>
   )
 
