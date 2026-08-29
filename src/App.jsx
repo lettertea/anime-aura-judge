@@ -6,6 +6,14 @@ import { getAuraVerdict } from './services/gemini.js'
 
 const EMPTY_SLOTS = Array(9).fill(null)
 
+function loadMediaType() {
+  try {
+    return localStorage.getItem('aura-media-type') === 'MANGA' ? 'MANGA' : 'ANIME'
+  } catch {
+    return 'ANIME'
+  }
+}
+
 export default function App() {
   const [view, setView] = useState('selection')
   const [slots, setSlots] = useState(EMPTY_SLOTS)
@@ -15,6 +23,10 @@ export default function App() {
   const [fade, setFade] = useState(true)
   // 'ai' = LLM verdict with local fallback; 'local' = fully deterministic, no AI.
   const [judgeMode, setJudgeMode] = useState('ai')
+  // 'ANIME' | 'MANGA' — persisted so the mode survives reloads.
+  const [mediaType, setMediaType] = useState(loadMediaType)
+  // Pending mode switch awaiting user confirmation (grid is non-empty).
+  const [pendingMediaType, setPendingMediaType] = useState(null)
 
   const handleSelectSlot = (index, anime) => {
     setSlots((prev) => {
@@ -80,6 +92,39 @@ export default function App() {
     })
   }
 
+  const filledCount = slots.filter(Boolean).length
+
+  const applyMediaType = (next) => {
+    setMediaType(next)
+    try {
+      localStorage.setItem('aura-media-type', next)
+    } catch {
+      /* private mode — persistence is best-effort */
+    }
+  }
+
+  const handleMediaTypeChange = (next) => {
+    if (next === mediaType) return
+    if (filledCount > 0) {
+      // Non-empty grid: ask before wiping it.
+      setPendingMediaType(next)
+    } else {
+      applyMediaType(next)
+    }
+  }
+
+  const confirmMediaTypeSwitch = () => {
+    if (pendingMediaType) {
+      applyMediaType(pendingMediaType)
+      setSlots(EMPTY_SLOTS)
+      setScoreResult(null)
+      setVerdict(null)
+    }
+    setPendingMediaType(null)
+  }
+
+  const cancelMediaTypeSwitch = () => setPendingMediaType(null)
+
   return (
     <div className="min-h-screen bg-void relative">
       {/* Subtle radial spotlight */}
@@ -102,6 +147,8 @@ export default function App() {
             isJudging={isJudging}
             judgeMode={judgeMode}
             onJudgeModeChange={setJudgeMode}
+            mediaType={mediaType}
+            onMediaTypeChange={handleMediaTypeChange}
           />
         ) : (
           <AuraCard
@@ -112,6 +159,41 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* Mode switch confirmation — shown only when the grid has picks */}
+      {pendingMediaType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={cancelMediaTypeSwitch}
+          />
+          <div className="relative max-w-sm w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-zinc-100">
+              Switch to {pendingMediaType === 'MANGA' ? 'Manga' : 'Anime'} mode?
+            </h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Switching to {pendingMediaType === 'MANGA' ? 'Manga' : 'Anime'} mode will clear your
+              current grid. Continue?
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={cancelMediaTypeSwitch}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmMediaTypeSwitch}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors cursor-pointer"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

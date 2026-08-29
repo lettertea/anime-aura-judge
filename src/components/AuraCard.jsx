@@ -9,6 +9,10 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
   const [confirmReset, setConfirmReset] = useState(false)
   const [showBreakdown, setShowBreakdown] = useState(true)
 
+  const isManga = selectedAnime?.[0]?.mediaType === 'MANGA'
+  const mediumNoun = isManga ? 'manga' : 'anime'
+  const MediumNoun = isManga ? 'Manga' : 'Anime'
+
   const { baseScore, finalScore, modifiers } = scoreResult
   const { archetype, explanation, subtitle, callout, offline } = verdict
   const modifierSum = modifiers.reduce(
@@ -21,7 +25,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
     setExporting(true)
     setExportError(null)
     try {
-      await downloadCardImage({ selectedAnime, scoreResult, verdict })
+      await downloadCardImage({ selectedAnime, scoreResult, verdict, mediaType: selectedAnime?.[0]?.mediaType })
     } catch (err) {
       console.error('Card export failed:', err)
       setExportError(
@@ -44,7 +48,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
             <Gauge size={18} />
           </span>
           <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
-            Anime Aura Judge
+            {MediumNoun} Aura Judge
           </h1>
         </div>
         <span className="px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900 text-xs font-mono uppercase tracking-widest text-zinc-400">
@@ -77,7 +81,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
           {finalScore.toLocaleString()}
         </p>
         <p className="text-xs font-mono text-zinc-500 mt-3">
-          base {baseScore.toLocaleString()} + 9 anime modifiers ({modifierSum >= 0 ? '+' : ''}{modifierSum.toLocaleString()})
+          base {baseScore.toLocaleString()} + 9 {mediumNoun} modifiers ({modifierSum >= 0 ? '+' : ''}{modifierSum.toLocaleString()})
         </p>
       </div>
 
@@ -85,7 +89,7 @@ export default function AuraCard({ selectedAnime, scoreResult, verdict, onReset 
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-mono uppercase tracking-widest text-zinc-400">
-            Grid Anime Contributions (All 9 Titles)
+            Grid {MediumNoun} Contributions (All 9 Titles)
           </p>
           <span className="text-xs font-mono text-zinc-500">
             9 of 9 accounted

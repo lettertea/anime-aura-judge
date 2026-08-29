@@ -55,6 +55,8 @@ function StatBar({ stat, value, icon, blurb }) {
 export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) {
   const { seed, baseScore, finalScore, modifiers } = scoreResult
   const sheet = verdict.sheet
+  const isManga = selectedAnime?.[0]?.mediaType === 'MANGA'
+  const mediumNoun = isManga ? 'Manga' : 'Anime'
   const roasts = verdict.roasts || []
   const characterBio = verdict.characterBio || ''
 
@@ -169,7 +171,7 @@ export default function ScoreBreakdown({ selectedAnime, scoreResult, verdict }) 
           </div>
 
           <div className="pt-2 pb-1 text-xs text-zinc-500 uppercase tracking-wider font-semibold">
-            All 9 Anime Contributions
+            All 9 {mediumNoun} Contributions
             {scoreResult.aiScored && (
               <span className="ml-2 normal-case tracking-normal text-violet-400 font-medium">
                 ✦ AI-evaluated

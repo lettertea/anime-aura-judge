@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Loader2, X, Sparkles, AlertCircle, Gauge, Dices } from 'lucide-react'
-import { searchAnime, getRandomAnimeSet } from '../services/animeApi.js'
+import { Search, Loader2, X, Sparkles, AlertCircle, Gauge, Dices, BookOpen, Tv } from 'lucide-react'
+import { searchAnime, getRandomMediaSet } from '../services/animeApi.js'
 
-export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, judgeMode, onJudgeModeChange }) {
+export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, judgeMode, onJudgeModeChange, mediaType = 'ANIME', onMediaTypeChange }) {
+  const isManga = mediaType === 'MANGA'
+  const mediumNoun = isManga ? 'manga' : 'anime'
   const [query, setQuery] = useState('')
   const [luckyLoading, setLuckyLoading] = useState(false)
   const [luckyError, setLuckyError] = useState(null)
@@ -59,11 +61,11 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
     return undefined
   }, [mobilePickerOpen])
 
-  const doSearch = useCallback(async (q, signal) => {
+  const doSearch = useCallback(async (q, signal, mediaType) => {
     setSearching(true)
     setSearchError(null)
     try {
-      const data = await searchAnime(q, signal)
+      const data = await searchAnime(q, signal, mediaType)
       setResults(data || [])
       setSelectedIndex(0)
       setIsDropdownOpen(true)
@@ -90,12 +92,12 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
 
     setSearching(true)
     const controller = new AbortController()
-    const t = setTimeout(() => doSearch(query.trim(), controller.signal), 300)
+    const t = setTimeout(() => doSearch(query.trim(), controller.signal, mediaType), 300)
     return () => {
       clearTimeout(t)
       controller.abort()
     }
-  }, [query, doSearch])
+  }, [query, doSearch, mediaType])
 
   const pick = (anime) => {
     if (!anime) return
@@ -176,7 +178,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
   const searchPanel = (
     <>
       <div className="flex items-center justify-between mb-2">
-        <label htmlFor="anime-search-input" className="text-sm font-medium text-zinc-300">
+        <label htmlFor="media-search-input" className="text-sm font-medium text-zinc-300">
           {slots[activeSlot] ? (
             <span>
               Replacing <span className="text-violet-400 font-semibold">Slot {activeSlot + 1}</span> ({slots[activeSlot].title})
@@ -198,7 +200,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
           className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
         />
         <input
-          id="anime-search-input"
+          id="media-search-input"
           ref={inputRef}
           type="text"
           value={query}
@@ -216,7 +218,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
             }
           }}
           onKeyDown={handleKeyDown}
-          placeholder={`Search anime for Slot ${activeSlot + 1}...`}
+          placeholder={`Search ${mediumNoun} for Slot ${activeSlot + 1}...`}
           disabled={isJudging}
           autoComplete="off"
           className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl py-3.5 pl-11 pr-11 text-zinc-100 placeholder-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors text-base"
@@ -251,7 +253,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
           {searching && results.length === 0 && (
             <div className="p-6 text-center text-zinc-400 flex items-center justify-center gap-2">
               <Loader2 size={18} className="text-indigo-400 animate-spin" />
-              <span>Searching anime database...</span>
+              <span>Searching {mediumNoun} database...</span>
             </div>
           )}
 
@@ -264,7 +266,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
 
           {!searching && results.length === 0 && !searchError && query.trim() && (
             <div className="p-6 text-center text-zinc-400 text-sm">
-              No anime found for "{query}". Try another title.
+              No {mediumNoun} found for "{query}". Try another title.
             </div>
           )}
 
@@ -302,7 +304,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
                   <p className="text-xs text-zinc-500 font-mono truncate mt-1">
                     {anime.year ? `${anime.year}` : ''}
                     {anime.year && genresText ? ' · ' : ''}
-                    {genresText || 'Anime'}
+                    {genresText || (isManga ? 'Manga' : 'Anime')}
                   </p>
                 </div>
                 {alreadyPicked ? (
@@ -333,10 +335,10 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
           <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-accent-glow">
             <Gauge size={18} />
           </span>
-          Anime Aura Judge
+          {isManga ? 'Manga Aura Judge' : 'Anime Aura Judge'}
         </h1>
         <p className="mt-3 text-zinc-400 text-base">
-          Pick 9 anime. Receive judgment. No mercy.
+          Pick 9 {mediumNoun}. Receive judgment. No mercy.
         </p>
       </header>
 
@@ -426,7 +428,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
                   <button
                     type="button"
                     onClick={(e) => handleClearSlot(e, i)}
-                    title="Remove anime"
+                    title={`Remove ${mediumNoun}`}
                     className="absolute top-2 right-2 p-1.5 rounded-full bg-zinc-950/80 border border-zinc-700 text-zinc-400 hover:text-rose-400 hover:border-rose-500/50 transition-colors z-10 cursor-pointer"
                   >
                     <X size={16} />
@@ -442,6 +444,38 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
         <p className="text-sm font-mono text-zinc-500">
           {filledCount}/9 slots filled
         </p>
+
+        {/* Media type toggle: Anime vs Manga */}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+            <button
+              type="button"
+              onClick={() => onMediaTypeChange('ANIME')}
+              disabled={isJudging}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                !isManga
+                  ? 'bg-indigo-600 text-white shadow-accent-glow'
+                  : 'text-zinc-400 hover:text-zinc-100'
+              }`}
+            >
+              <Tv size={15} />
+              Anime
+            </button>
+            <button
+              type="button"
+              onClick={() => onMediaTypeChange('MANGA')}
+              disabled={isJudging}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                isManga
+                  ? 'bg-indigo-600 text-white shadow-accent-glow'
+                  : 'text-zinc-400 hover:text-zinc-100'
+              }`}
+            >
+              <BookOpen size={15} />
+              Manga
+            </button>
+          </div>
+        </div>
 
         {/* Judge mode toggle: AI verdict vs fully deterministic (no AI) */}
         <div className="flex justify-center">
@@ -488,7 +522,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
             setLuckyLoading(true)
             setLuckyError(null)
             try {
-              const randomSet = await getRandomAnimeSet(9)
+              const randomSet = await getRandomMediaSet(9, mediaType)
               randomSet.forEach((anime, i) => onSelectSlot(i, anime))
             } catch (err) {
               console.error('Lucky pick failed:', err)
@@ -552,7 +586,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
                   <Search size={13} />
                 </span>
                 <span className="text-sm font-semibold text-zinc-100">
-                  {slots[activeSlot] ? 'Replace anime' : 'Add anime'}
+                  {slots[activeSlot] ? `Replace ${mediumNoun}` : `Add ${mediumNoun}`}
                 </span>
                 <span className="text-xs font-mono text-zinc-500">Slot {activeSlot + 1}</span>
               </div>

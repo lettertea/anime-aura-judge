@@ -72,13 +72,16 @@ function drawCover(ctx, img, x, y, w, h) {
   ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh)
 }
 
-export async function renderCardCanvas({ selectedAnime, scoreResult, verdict }) {
+export async function renderCardCanvas({ selectedAnime, scoreResult, verdict, mediaType }) {
   const { baseScore, finalScore, modifiers } = scoreResult
   const { archetype, explanation, subtitle, callout, offline } = verdict
   const modifierSum = modifiers.reduce(
     (acc, m) => acc + (m.sign === '+' ? m.pts : -m.pts),
     0,
   )
+  const isManga = (mediaType || selectedAnime?.[0]?.mediaType) === 'MANGA'
+  const mediumNoun = isManga ? 'manga' : 'anime'
+  const headerTitle = isManga ? 'Manga Aura Judge' : 'Anime Aura Judge'
 
   // Measure dynamic height first (dry run for text wrapping)
   const measure = document.createElement('canvas').getContext('2d')
@@ -127,7 +130,7 @@ export async function renderCardCanvas({ selectedAnime, scoreResult, verdict }) 
   ctx.fillStyle = COLORS.text
   ctx.font = '600 20px system-ui, sans-serif'
   ctx.textBaseline = 'middle'
-  ctx.fillText('Anime Aura Judge', PAD + 44, 49)
+  ctx.fillText(headerTitle, PAD + 44, 49)
   ctx.font = '11px ui-monospace, monospace'
   ctx.fillStyle = COLORS.textFaint
   const badge = 'OFFICIAL AURA ASSESSMENT'
@@ -177,7 +180,7 @@ export async function renderCardCanvas({ selectedAnime, scoreResult, verdict }) 
   ctx.font = '11px ui-monospace, monospace'
   ctx.fillStyle = COLORS.textFaint
   ctx.fillText(
-    `base ${baseScore.toLocaleString()} + 9 anime modifiers (${modifierSum >= 0 ? '+' : ''}${modifierSum.toLocaleString()})`,
+    `base ${baseScore.toLocaleString()} + 9 ${mediumNoun} modifiers (${modifierSum >= 0 ? '+' : ''}${modifierSum.toLocaleString()})`,
     W / 2,
     scoreTop + 122,
   )
@@ -192,7 +195,11 @@ export async function renderCardCanvas({ selectedAnime, scoreResult, verdict }) 
   ctx.stroke()
   ctx.font = '11px ui-monospace, monospace'
   ctx.fillStyle = COLORS.textDim
-  ctx.fillText('GRID ANIME CONTRIBUTIONS (ALL 9 TITLES)', PAD + 16, contribTop + 22)
+  ctx.fillText(
+    `GRID ${isManga ? 'MANGA' : 'ANIME'} CONTRIBUTIONS (ALL 9 TITLES)`,
+    PAD + 16,
+    contribTop + 22,
+  )
   modifiers.forEach((m, i) => {
     const col = i % 2
     const row = Math.floor(i / 2)
@@ -277,7 +284,7 @@ export async function renderCardCanvas({ selectedAnime, scoreResult, verdict }) 
 export async function downloadCardImage(params) {
   const canvas = await renderCardCanvas(params)
   const link = document.createElement('a')
-  link.download = 'anime-aura-card.png'
+  link.download = isManga ? 'manga-aura-card.png' : 'anime-aura-card.png'
   link.href = canvas.toDataURL('image/png')
   link.click()
 }
