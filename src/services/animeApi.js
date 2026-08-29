@@ -1,6 +1,6 @@
-// Unified Anime Search Service with reliable fallbacks (AniList -> Kitsu -> Jikan)
+// Unified Media Search Service with reliable fallbacks (AniList -> Kitsu -> Jikan)
 
-// NormalizedAnime contract (all providers map to this shape):
+// NormalizedMedia contract (all providers map to this shape):
 // {
 //   mal_id: number,
 //   title: string,
@@ -10,22 +10,25 @@
 //   genres: Array<{ name: string }>,
 //   year: number | null,
 //   score: number | null,
+//   mediaType: 'ANIME' | 'MANGA',
 //   // Optional enrichment fields (best-effort, may be null):
-//   format: string | null,     // e.g. 'TV', 'MOVIE', 'OVA', 'ONA'
+//   format: string | null,     // e.g. 'TV', 'MOVIE', 'OVA', 'ONA', 'MANGA', 'NOVEL'
 //   status: string | null,     // e.g. 'FINISHED', 'RELEASING'
-//   episodes: number | null,
+//   episodes: number | null,   // anime only
+//   chapters: number | null,   // manga only
+//   volumes: number | null,    // manga only
 //   popularity: number | null, // provider popularity count
 //   favourites: number | null, // provider favourites count
 // }
 
 const ANILIST_URL = 'https://graphql.anilist.co'
-const KITSU_URL = 'https://kitsu.io/api/edge/anime'
-const JIKAN_URL = 'https://api.jikan.moe/v4/anime'
+const KITSU_BASE_URL = 'https://kitsu.io/api/edge'
+const JIKAN_BASE_URL = 'https://api.jikan.moe/v4'
 
 const ANILIST_QUERY = `
-  query ($search: String) {
+  query ($search: String, $type: MediaType) {
     Page(page: 1, perPage: 12) {
-      media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+      media(search: $search, type: $type, sort: SEARCH_MATCH) {
         id
         idMal
         title {
@@ -42,6 +45,8 @@ const ANILIST_QUERY = `
         format
         status
         episodes
+        chapters
+        volumes
         popularity
         favourites
         coverImage {
@@ -54,7 +59,7 @@ const ANILIST_QUERY = `
   }
 `
 
-async function searchAniList(query, signal) {
+async function searchAniList(query, signal, mediaType = 'ANIME') {
   const res = await fetch(ANILIST_URL, {
     method: 'POST',
     headers: {
@@ -63,7 +68,7 @@ async function searchAniList(query, signal) {
     },
     body: JSON.stringify({
       query: ANILIST_QUERY,
-      variables: { search: query },
+      variables: { search: query, type: mediaType },
     }),
     signal,
   })
@@ -72,12 +77,12 @@ async function searchAniList(query, signal) {
   const json = await res.json()
   const mediaList = json.data?.Page?.media || []
 
-  const mapped = mapAniListMedia(mediaList)
-  
+  const mapped = mapAniListMedia(mediaList, mediaType)
+
     return rankByRelevanceAndPopularity(mapped)
   }
-  
-  function mapAniListMedia(mediaList) {
+
+  function mapAniListMedia(mediaList, mediaType = 'ANIME') {
     return mediaList.map((m) => {
     const title = m.title?.english || m.title?.romaji || m.title?.native || 'Unknown Title'
     const year = m.seasonYear || m.startDate?.year || null
@@ -101,9 +106,12 @@ async function searchAniList(query, signal) {
       genres,
       year,
       score: m.averageScore ? Number((m.averageScore / 10).toFixed(2)) : null,
+      mediaType,
       format: m.format ?? null,
       status: m.status ?? null,
       episodes: m.episodes ?? null,
+      chapters: m.chapters ?? null,
+      volumes: m.volumes ?? null,
       popularity: m.popularity ?? null,
       favourites: m.favourites ?? null,
     }
@@ -145,8 +153,9 @@ export function rankByRelevanceAndPopularity(mediaList) {
   return scored.map((s) => s.item)
 }
 
-async function searchKitsu(query, signal) {
-  const url = `${KITSU_URL}?filter[text]=${encodeURIComponent(query)}&page[limit]=12`
+async function searchKitsu(query, signal, mediaType = 'ANIME') {
+  const endpoint = mediaType === 'MANGA' ? 'manga' : 'anime'
+  const url = `${KITSU_BASE_URL}/${endpoint}?filter[text]=${encodeURIComponent(query)}&page[limit]=12`
   const res = await fetch(url, { signal })
   if (!res.ok) throw new Error(`Kitsu error ${res.status}`)
   const json = await res.json()
@@ -169,44 +178,55 @@ async function searchKitsu(query, signal) {
           small_image_url: imageUrl,
         },
       },
-      genres: [{ name: attr.subtype || 'Anime' }],
+      genres: [{ name: attr.subtype || (mediaType === 'MANGA' ? 'Manga' : 'Anime') }],
       year,
       score: attr.averageRating ? Number((parseFloat(attr.averageRating) / 10).toFixed(2)) : null,
+      mediaType,
       format: attr.subtype ?? null,
       status: attr.status ?? null,
       episodes: attr.episodeCount ?? null,
+      chapters: attr.chapterCount ?? null,
+      volumes: attr.volumeCount ?? null,
       popularity: attr.userCount ?? null,
       favourites: attr.favoritesCount ?? null,
     }
   })
 }
 
-async function searchJikan(query, signal) {
-  const url = `${JIKAN_URL}?q=${encodeURIComponent(query)}&limit=12`
+async function searchJikan(query, signal, mediaType = 'ANIME') {
+  const endpoint = mediaType === 'MANGA' ? 'manga' : 'anime'
+  const url = `${JIKAN_BASE_URL}/${endpoint}?q=${encodeURIComponent(query)}&limit=12`
   const res = await fetch(url, { signal })
   if (!res.ok) throw new Error(`Jikan error ${res.status}`)
   const json = await res.json()
-  return (json.data || []).map((a) => ({
-    mal_id: a.mal_id,
-    title: a.title_english || a.title,
-    images: a.images,
-    genres: a.genres || [],
-    year: a.year || (a.aired?.from ? parseInt(a.aired.from.slice(0, 4), 10) : null),
-    score: a.score,
-    format: a.type ?? null,
-    status: a.status ?? null,
-    episodes: a.episodes ?? null,
-    popularity: a.members ?? null,
-    favourites: a.favorites ?? null,
-  }))
+  return (json.data || []).map((a) => {
+    const dateStr = a.aired?.from || a.published?.from
+    const year = a.year || (dateStr ? parseInt(dateStr.slice(0, 4), 10) : null)
+    return {
+      mal_id: a.mal_id,
+      title: a.title_english || a.title,
+      images: a.images,
+      genres: a.genres || [],
+      year,
+      score: a.score,
+      mediaType,
+      format: a.type ?? null,
+      status: a.status ?? null,
+      episodes: a.episodes ?? null,
+      chapters: a.chapters ?? null,
+      volumes: a.volumes ?? null,
+      popularity: a.members ?? null,
+      favourites: a.favorites ?? null,
+    }
+  })
 }
 
 /**
- * Fetch a random set of well-known anime for the "I'm Feeling Lucky" button.
- * Picks a random page from the top-favourited anime on AniList and returns
- * `count` distinct, shuffled entries mapped to the NormalizedAnime shape.
+ * Fetch a random set of well-known media for the "I'm Feeling Lucky" button.
+ * Picks a random page from the top-favourited media on AniList and returns
+ * `count` distinct, shuffled entries mapped to the NormalizedMedia shape.
  */
-export async function getRandomAnimeSet(count = 9) {
+export async function getRandomMediaSet(count = 9, mediaType = 'ANIME') {
   const maxPage = 20 // top ~500 favourites
   const page = Math.floor(Math.random() * maxPage) + 1
 
@@ -218,9 +238,9 @@ export async function getRandomAnimeSet(count = 9) {
     },
     body: JSON.stringify({
       query: `
-        query ($page: Int) {
+        query ($page: Int, $type: MediaType) {
           Page(page: $page, perPage: 25) {
-            media(type: ANIME, sort: FAVOURITES_DESC, isAdult: false) {
+            media(type: $type, sort: FAVOURITES_DESC, isAdult: false) {
               id
               idMal
               title { romaji english native }
@@ -231,6 +251,8 @@ export async function getRandomAnimeSet(count = 9) {
               format
               status
               episodes
+              chapters
+              volumes
               popularity
               favourites
               coverImage { extraLarge large medium }
@@ -238,7 +260,7 @@ export async function getRandomAnimeSet(count = 9) {
           }
         }
       `,
-      variables: { page },
+      variables: { page, type: mediaType },
     }),
   })
 
@@ -262,18 +284,20 @@ export async function getRandomAnimeSet(count = 9) {
     if (picked.length >= count) break
   }
 
-  if (picked.length < count) throw new Error('Not enough random anime returned')
+  const noun = mediaType === 'MANGA' ? 'manga' : 'anime'
+  if (picked.length < count) throw new Error(`Not enough random ${noun} returned`)
 
-  return mapAniListMedia(picked)
+  return mapAniListMedia(picked, mediaType)
 }
 
-export async function searchAnime(query, signal) {
+export async function searchAnime(query, signal, mediaType = 'ANIME') {
   if (!query || !query.trim()) return []
   const cleanQuery = query.trim()
+  const noun = mediaType === 'MANGA' ? 'manga' : 'anime'
 
   // 1. Try AniList
   try {
-    const results = await searchAniList(cleanQuery, signal)
+    const results = await searchAniList(cleanQuery, signal, mediaType)
     if (results && results.length > 0) return results
   } catch (err) {
     if (err.name === 'AbortError') throw err
@@ -282,7 +306,7 @@ export async function searchAnime(query, signal) {
 
   // 2. Try Kitsu fallback
   try {
-    const results = await searchKitsu(cleanQuery, signal)
+    const results = await searchKitsu(cleanQuery, signal, mediaType)
     if (results && results.length > 0) return results
   } catch (err) {
     if (err.name === 'AbortError') throw err
@@ -291,11 +315,11 @@ export async function searchAnime(query, signal) {
 
   // 3. Try Jikan fallback
   try {
-    const results = await searchJikan(cleanQuery, signal)
+    const results = await searchJikan(cleanQuery, signal, mediaType)
     return results
   } catch (err) {
     if (err.name === 'AbortError') throw err
-    console.warn('All anime search providers failed:', err)
-    throw new Error('Unable to search anime. Please check your internet connection and try again.')
+    console.warn(`All ${noun} search providers failed:`, err)
+    throw new Error(`Unable to search ${noun}. Please check your internet connection and try again.`)
   }
 }
