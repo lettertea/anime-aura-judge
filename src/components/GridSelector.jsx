@@ -327,7 +327,7 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
       <header className="text-center mb-8 sm:mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-xs font-mono uppercase tracking-widest text-zinc-400 mb-5">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-xs font-mono uppercase tracking-widest text-zinc-400 mb-4">
           <Gauge size={13} className="text-indigo-400" />
           Official Aura Assessment
         </div>
@@ -337,9 +337,41 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
           </span>
           {isManga ? 'Manga Aura Judge' : 'Anime Aura Judge'}
         </h1>
-        <p className="mt-3 text-zinc-400 text-base">
+        <p className="mt-2 text-zinc-400 text-sm sm:text-base">
           Pick 9 {mediumNoun}. Receive judgment. No mercy.
         </p>
+
+        {/* Media Type Switcher */}
+        <div className="mt-5 flex justify-center">
+          <div className="inline-flex items-center p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 shadow-sm">
+            <button
+              type="button"
+              onClick={() => onMediaTypeChange('ANIME')}
+              disabled={isJudging}
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 cursor-pointer ${
+                !isManga
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/70 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 border border-transparent'
+              }`}
+            >
+              <Tv size={14} className={!isManga ? 'text-indigo-400' : 'text-zinc-500'} />
+              <span>Anime</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onMediaTypeChange('MANGA')}
+              disabled={isJudging}
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 cursor-pointer ${
+                isManga
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/70 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 border border-transparent'
+              }`}
+            >
+              <BookOpen size={14} className={isManga ? 'text-indigo-400' : 'text-zinc-500'} />
+              <span>Manga</span>
+            </button>
+          </div>
+        </div>
       </header>
 
       {/* Top Search & Autocomplete Bar — desktop only; mobile uses the sheet */}
@@ -444,38 +476,6 @@ export default function GridSelector({ slots, onSelectSlot, onJudge, isJudging, 
         <p className="text-sm font-mono text-zinc-500">
           {filledCount}/9 slots filled
         </p>
-
-        {/* Media type toggle: Anime vs Manga */}
-        <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
-            <button
-              type="button"
-              onClick={() => onMediaTypeChange('ANIME')}
-              disabled={isJudging}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                !isManga
-                  ? 'bg-indigo-600 text-white shadow-accent-glow'
-                  : 'text-zinc-400 hover:text-zinc-100'
-              }`}
-            >
-              <Tv size={15} />
-              Anime
-            </button>
-            <button
-              type="button"
-              onClick={() => onMediaTypeChange('MANGA')}
-              disabled={isJudging}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                isManga
-                  ? 'bg-indigo-600 text-white shadow-accent-glow'
-                  : 'text-zinc-400 hover:text-zinc-100'
-              }`}
-            >
-              <BookOpen size={15} />
-              Manga
-            </button>
-          </div>
-        </div>
 
         {/* Judge mode toggle: AI verdict vs fully deterministic (no AI) */}
         <div className="flex justify-center">
